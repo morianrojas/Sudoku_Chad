@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chad Sudoku</title>
+    <meta name="description" content="A clean, aesthetic Sudoku game with multiple difficulty levels and intelligent highlighting." />
+    <meta property="og:title" content="Chad Sudoku" />
+    <meta property="og:description" content="A clean, aesthetic Sudoku game with multiple difficulty levels and intelligent highlighting." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+        touch-action: manipulation;
+      }
+      /* Custom scrollbar hiding for clean UI */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      @keyframes xp-entry {
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.1); opacity: 1; }
+        70% { transform: scale(0.9); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes quote-entry {
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.1); opacity: 1; }
+        70% { transform: scale(0.9); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes xp-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-12px) scale(1.05); }
+      }
+      @keyframes quote-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-8px) scale(1.02); }
+      }
+      .animate-xp-pop {
+        animation: xp-entry 0.3s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+      }
+      .animate-quote-pop {
+        animation: quote-entry 2.5s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+      }
+      .animate-xp-float {
+        animation: xp-float 2.2s ease-in-out infinite;
+      }
+      .animate-quote-float {
+        animation: quote-float 5s ease-in-out infinite;
+      }
+      @keyframes victory-backdrop-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes victory-card-in {
+        0% { opacity: 0; transform: scale(0.82) translateY(24px); }
+        65% { opacity: 1; transform: scale(1.03) translateY(-4px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes victory-halo-spin {
+        0% { transform: rotate(0deg) scale(1); }
+        50% { transform: rotate(180deg) scale(1.06); }
+        100% { transform: rotate(360deg) scale(1); }
+      }
+      @keyframes victory-trophy-bob {
+        0%, 100% { transform: translateY(0) rotate(-3deg); }
+        50% { transform: translateY(-6px) rotate(3deg); }
+      }
+      @keyframes victory-confetti-burst {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.4);
+        }
+        15% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(var(--tx, 0px), var(--ty, 180px), 0) rotate(var(--rot, 360deg)) scale(1);
+        }
+      }
+      @keyframes victory-stagger-up {
+        0% { opacity: 0; transform: translateY(12px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes victory-shimmer {
+        0% { transform: translateX(-120%) skewX(-18deg); }
+        100% { transform: translateX(220%) skewX(-18deg); }
+      }
+      .animate-victory-backdrop {
+        animation: victory-backdrop-in 0.28s ease-out both;
+      }
+      .animate-victory-card {
+        animation: victory-card-in 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-victory-halo {
+        animation: victory-halo-spin 12s linear infinite;
+      }
+      .animate-victory-trophy {
+        animation: victory-trophy-bob 2.6s ease-in-out infinite;
+      }
+      .animate-victory-confetti {
+        animation: victory-confetti-burst 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-victory-stagger {
+        animation: victory-stagger-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-victory-shimmer {
+        animation: victory-shimmer 2.8s ease-in-out infinite;
+      }
+      @keyframes rankup-backdrop-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes rankup-sunburst-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes rankup-ring-expand {
+        0% { opacity: 0.72; transform: scale(0.35); }
+        100% { opacity: 0; transform: scale(2.15); }
+      }
+      @keyframes rankup-crest-reveal {
+        0% {
+          opacity: 0;
+          transform: perspective(900px) rotateY(-32deg) translateY(20px) scale(0.72);
+        }
+        62% {
+          opacity: 1;
+          transform: perspective(900px) rotateY(7deg) translateY(-4px) scale(1.05);
+        }
+        100% {
+          opacity: 1;
+          transform: perspective(900px) rotateY(0deg) translateY(0) scale(1);
+        }
+      }
+      @keyframes rankup-xp-ascend {
+        0% {
+          opacity: 0;
+          transform: translateY(24px) scale(0.76);
+        }
+        60% {
+          opacity: 1;
+          transform: translateY(-5px) scale(1.06);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes rankup-gradient-flow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      @keyframes rankup-banner-reveal {
+        0% {
+          opacity: 0;
+          transform: translateY(14px) scale(0.86);
+        }
+        65% {
+          opacity: 1;
+          transform: translateY(-2px) scale(1.02);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes rankup-media-showcase {
+        0% {
+          opacity: 0;
+          transform: perspective(1000px) rotateX(9deg) translateY(24px) scale(0.9);
+        }
+        68% {
+          opacity: 1;
+          transform: perspective(1000px) rotateX(-1.5deg) translateY(-3px) scale(1.01);
+        }
+        100% {
+          opacity: 1;
+          transform: perspective(1000px) rotateX(0deg) translateY(0) scale(1);
+        }
+      }
+      @keyframes rankup-btn-rise {
+        0% { opacity: 0; transform: translateY(14px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes reward-countdown-shrink {
+        0% { transform: scaleX(1); }
+        100% { transform: scaleX(0); }
+      }
+      .animate-rankup-backdrop {
+        animation: rankup-backdrop-in 0.24s ease-out both;
+      }
+      .animate-rankup-sunburst {
+        animation: rankup-sunburst-spin 26s linear infinite;
+      }
+      .animate-rankup-ring {
+        animation: rankup-ring-expand 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-rankup-ring-delayed {
+        animation: rankup-ring-expand 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+      }
+      .animate-rankup-crest {
+        animation: rankup-crest-reveal 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-rankup-xp {
+        animation: rankup-xp-ascend 0.56s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+      }
+      .animate-rankup-gradient {
+        background-size: 220% 220%;
+        animation: rankup-gradient-flow 3.2s ease infinite;
+      }
+      .animate-rankup-banner {
+        animation: rankup-banner-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+      }
+      .animate-rankup-media {
+        animation: rankup-media-showcase 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+      }
+      .animate-rankup-btn {
+        animation: rankup-btn-rise 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+      }
+      .animate-reward-countdown {
+        transform-origin: left center;
+        animation-name: reward-countdown-shrink;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
+      }
+      @keyframes normal-backdrop-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes normal-orb-drift {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(18px, -16px, 0) scale(1.07); }
+      }
+      @keyframes normal-orb-drift-alt {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(-20px, 14px, 0) scale(1.06); }
+      }
+      @keyframes normal-xp-bounce {
+        0% {
+          opacity: 0;
+          transform: translateY(20px) scale(0.45);
+        }
+        45% {
+          opacity: 1;
+          transform: translateY(-8px) scale(1.12, 0.91);
+        }
+        68% {
+          transform: translateY(3px) scale(0.95, 1.05);
+        }
+        84% {
+          transform: translateY(-2px) scale(1.03, 0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1, 1);
+        }
+      }
+      @keyframes normal-xp-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+      @keyframes normal-quote-glide {
+        0% {
+          opacity: 0;
+          transform: translateY(18px) scale(0.94);
+        }
+        65% {
+          opacity: 1;
+          transform: translateY(-3px) scale(1.015);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes normal-media-rise {
+        0% {
+          opacity: 0;
+          transform: perspective(900px) rotateX(12deg) translateY(26px) scale(0.92);
+        }
+        65% {
+          opacity: 1;
+          transform: perspective(900px) rotateX(-2deg) translateY(-3px) scale(1.01);
+        }
+        100% {
+          opacity: 1;
+          transform: perspective(900px) rotateX(0deg) translateY(0) scale(1);
+        }
+      }
+      @keyframes normal-btn-fade {
+        0% {
+          opacity: 0;
+          transform: translateY(12px) scale(0.96);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .animate-normal-backdrop {
+        animation: normal-backdrop-in 0.24s ease-out both;
+      }
+      .animate-normal-orb {
+        animation: normal-orb-drift 7s ease-in-out infinite;
+      }
+      .animate-normal-orb-alt {
+        animation: normal-orb-drift-alt 8.5s ease-in-out infinite;
+      }
+      .animate-normal-xp-bounce {
+        animation: normal-xp-bounce 0.68s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .animate-normal-xp-float {
+        animation: normal-xp-float 3.2s ease-in-out infinite;
+      }
+      .animate-normal-quote {
+        animation: normal-quote-glide 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+      }
+      .animate-normal-media {
+        animation: normal-media-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+      }
+      .animate-normal-btn {
+        animation: normal-btn-fade 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .animate-xp-pop,
+        .animate-quote-pop,
+        .animate-xp-float,
+        .animate-quote-float,
+        .animate-victory-backdrop,
+        .animate-victory-card,
+        .animate-victory-halo,
+        .animate-victory-trophy,
+        .animate-victory-confetti,
+        .animate-victory-stagger,
+        .animate-victory-shimmer,
+        .animate-rankup-backdrop,
+        .animate-rankup-sunburst,
+        .animate-rankup-ring,
+        .animate-rankup-ring-delayed,
+        .animate-rankup-crest,
+        .animate-rankup-xp,
+        .animate-rankup-gradient,
+        .animate-rankup-banner,
+        .animate-rankup-media,
+        .animate-rankup-btn,
+        .animate-normal-backdrop,
+        .animate-normal-orb,
+        .animate-normal-orb-alt,
+        .animate-normal-xp-bounce,
+        .animate-normal-xp-float,
+        .animate-normal-quote,
+        .animate-normal-media,
+        .animate-normal-btn {
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
