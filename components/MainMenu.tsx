@@ -1,18 +1,16 @@
 import React from 'react';
 import { Difficulty } from '../types';
 import { Coffee, Brain, Flame, Trophy, Skull } from 'lucide-react';
+import chadImg1 from '../src/assets/images/chad-1.jpg';
+import chadImg2 from '../src/assets/images/chad-2.webp';
+import chadImg3 from '../src/assets/images/chad-3.png';
+import chadImg4 from '../src/assets/images/chad-4.jpg';
 
 interface MainMenuProps {
   onStartGame: (difficulty: Difficulty) => void;
 }
 
-// Using user provided Brave Search image links for the GigaChad theme
-const chadImages = [
-  "https://imgs.search.brave.com/3a-bVQd5ZjO4EBhTfpsBwYjZ9E8ibzjJVywkACM-pHc/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzgzLzlh/LzA3LzgzOWEwN2Yw/Njg4Zjk0YWU3ZTQ2/NzEzMmQ1OThjMThi/LmpwZw", 
-  "https://imgs.search.brave.com/F6esWisgAbl763_xTbphlenA9R4ipEa-1qYp79fxvXo/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2lraWEubm9j/b29raWUubmV0L2pv/a2UtYmF0dGxlcy9p/bWFnZXMvZC9kZi9H/aWdhY2hhZC5wbmcv/cmV2aXNpb24vbGF0/ZXN0L3NjYWxlLXRv/LXdpZHRoLWRvd24v/NDAwP2NiPTIwMjMw/ODEyMDY0ODM1",
-  "https://imgs.search.brave.com/H9IMjjXe66jvcr9b6O4DnpeIBne_e_UkXQZN5FKOyLc/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/cG5nYWxsLmNvbS93/cC1jb250ZW50L3Vw/bG9hZHMvMTQvR2ln/YWNoYWQtUE5HLUlt/YWdlcy5wbmc",
-  "https://imgs.search.brave.com/jPW_AivjjkbFDJ4C60pB7Nne4aOYrjcO14-HKS5Fkaw/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93YWxs/cGFwZXJjYXZlLmNv/bS93cC93cDk5MTcy/ODAuanBn"
-];
+const chadImages = [chadImg1, chadImg2, chadImg3, chadImg4];
 
 const difficultyConfig = {
   [Difficulty.EASY]: { 
@@ -60,42 +58,34 @@ const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame }) => {
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-300 via-gray-200 to-slate-400 text-slate-800 p-6 overflow-hidden">
       
       {/* Background Collage Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
         {/* Top Left */}
         <img 
           src={chadImages[0]} 
           alt="" 
-          loading="lazy"
           decoding="async"
-          className="absolute -top-20 -left-20 w-[500px] h-[500px] object-cover opacity-[0.15] grayscale rotate-12 mix-blend-multiply transition-opacity duration-1000"
-          onError={(e) => (e.currentTarget.style.display = 'none')}
+          className="absolute -top-4 -left-6 sm:top-2 sm:left-2 lg:left-6 w-[210px] h-[190px] sm:w-[340px] sm:h-[290px] lg:w-[440px] lg:h-[340px] object-cover object-top opacity-[0.18] grayscale rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
         />
         {/* Top Right */}
         <img 
           src={chadImages[1]} 
           alt="" 
-          loading="lazy"
           decoding="async"
-          className="absolute -top-32 -right-32 w-[600px] h-[600px] object-cover opacity-[0.15] grayscale -rotate-12 mix-blend-multiply transition-opacity duration-1000"
-          onError={(e) => (e.currentTarget.style.display = 'none')}
+          className="absolute -top-4 -right-6 sm:top-2 sm:right-2 lg:right-6 w-[195px] h-[225px] sm:w-[300px] sm:h-[350px] lg:w-[380px] lg:h-[430px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
         />
         {/* Bottom Left */}
         <img 
           src={chadImages[2]} 
           alt="" 
-          loading="lazy"
           decoding="async"
-          className="absolute -bottom-10 -left-32 w-[600px] h-[700px] object-cover opacity-[0.15] grayscale rotate-6 mix-blend-multiply transition-opacity duration-1000"
-          onError={(e) => (e.currentTarget.style.display = 'none')}
+          className="absolute -bottom-2 -left-4 sm:bottom-0 sm:left-2 lg:left-6 w-[205px] h-[250px] sm:w-[310px] sm:h-[390px] lg:w-[380px] lg:h-[460px] object-contain object-bottom opacity-[0.18] grayscale rotate-6 mix-blend-multiply"
         />
         {/* Bottom Right */}
         <img 
           src={chadImages[3]} 
           alt="" 
-          loading="lazy"
           decoding="async"
-          className="absolute -bottom-20 -right-20 w-[500px] h-[500px] object-cover opacity-[0.15] grayscale -rotate-6 mix-blend-multiply transition-opacity duration-1000"
-          onError={(e) => (e.currentTarget.style.display = 'none')}
+          className="absolute -bottom-4 -right-6 sm:bottom-2 sm:right-2 lg:right-6 w-[210px] h-[200px] sm:w-[340px] sm:h-[300px] lg:w-[440px] lg:h-[360px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
         />
       </div>
 

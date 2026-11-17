@@ -330,6 +330,97 @@
       .animate-normal-btn {
         animation: normal-btn-fade 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
       }
+      @keyframes energy-spark-travel {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 0, 0) rotate(var(--srot, 0deg)) scale(0.35);
+        }
+        14% {
+          opacity: 1;
+          transform: translate3d(calc(var(--mx, 0px) * 0.35), calc(var(--my, 0px) * 0.35), 0) rotate(calc(var(--srot, 0deg) + 30deg)) scale(var(--peak-scale, 1.2));
+        }
+        50% {
+          opacity: 0.95;
+          transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) rotate(var(--mrot, 90deg)) scale(1);
+        }
+        85% {
+          opacity: 0.85;
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) rotate(var(--erot, 180deg)) scale(0.2);
+        }
+      }
+      @keyframes energy-streak-shoot {
+        0% {
+          opacity: 0;
+          transform: rotate(var(--angle, 0deg)) translate3d(0, 0, 0) scaleX(0.35);
+        }
+        14% {
+          opacity: 0.95;
+          transform: rotate(var(--angle, 0deg)) translate3d(calc(var(--dist, 400px) * 0.16), 0, 0) scaleX(1.3);
+        }
+        82% {
+          opacity: 0.85;
+        }
+        100% {
+          opacity: 0;
+          transform: rotate(var(--angle, 0deg)) translate3d(var(--dist, 400px), 0, 0) scaleX(0.45);
+        }
+      }
+      @keyframes rankup-pillar-surge {
+        0%, 100% {
+          opacity: 0.32;
+          transform: translate3d(0, 12px, 0) scaleY(0.95);
+        }
+        50% {
+          opacity: 0.68;
+          transform: translate3d(0, -18px, 0) scaleY(1.06);
+        }
+      }
+      .animate-energy-spark {
+        animation-name: energy-spark-travel;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+      }
+      .animate-energy-streak {
+        animation-name: energy-streak-shoot;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+      }
+      .animate-rankup-pillar {
+        animation: rankup-pillar-surge 2.2s ease-in-out infinite;
+      }
+      @keyframes break-backdrop-in {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes break-card-rise {
+        0% { opacity: 0; transform: translateY(18px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes break-breathe {
+        0%, 100% { transform: scale(0.88); opacity: 0.42; }
+        50% { transform: scale(1.1); opacity: 0.82; }
+      }
+      @keyframes break-ring-ripple {
+        0%, 100% { transform: scale(0.94); opacity: 0.35; }
+        50% { transform: scale(1.16); opacity: 0.72; }
+      }
+      .animate-break-backdrop {
+        animation: break-backdrop-in 0.3s ease-out both;
+      }
+      .animate-break-card {
+        animation: break-card-rise 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .animate-break-breathe {
+        animation: break-breathe 8s ease-in-out infinite;
+      }
+      .animate-break-ring-ripple {
+        animation: break-ring-ripple 8s ease-in-out infinite;
+      }
       @media (prefers-reduced-motion: reduce) {
         .animate-xp-pop,
         .animate-quote-pop,
@@ -352,6 +443,7 @@
         .animate-rankup-banner,
         .animate-rankup-media,
         .animate-rankup-btn,
+        .animate-rankup-pillar,
         .animate-normal-backdrop,
         .animate-normal-orb,
         .animate-normal-orb-alt,
@@ -359,7 +451,13 @@
         .animate-normal-xp-float,
         .animate-normal-quote,
         .animate-normal-media,
-        .animate-normal-btn {
+        .animate-normal-btn,
+        .animate-energy-spark,
+        .animate-energy-streak,
+        .animate-break-backdrop,
+        .animate-break-card,
+        .animate-break-breathe,
+        .animate-break-ring-ripple {
           animation: none !important;
         }
       }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 
 interface GameTimerProps {
@@ -10,33 +10,64 @@ interface GameTimerProps {
 }
 
 export const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
   return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
 const GameTimer: React.FC<GameTimerProps> = React.memo(({ sessionId, isRunning, isPaused, onTogglePause, elapsedRef }) => {
-  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [timeElapsed, setTimeElapsed] = useState<number>(() => elapsedRef?.current ?? 0);
+  const lastSessionIdRef = useRef<number>(sessionId);
+  const accumulatedMsRef = useRef<number>((elapsedRef?.current ?? 0) * 1000);
+  const segmentStartRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setTimeElapsed(0);
-    if (elapsedRef) {
-      elapsedRef.current = 0;
+    if (lastSessionIdRef.current !== sessionId) {
+      lastSessionIdRef.current = sessionId;
+      accumulatedMsRef.current = 0;
+      segmentStartRef.current = isRunning ? performance.now() : null;
+      setTimeElapsed(0);
+      if (elapsedRef) {
+        elapsedRef.current = 0;
+      }
     }
-  }, [sessionId, elapsedRef]);
+  }, [sessionId, elapsedRef, isRunning]);
 
   useEffect(() => {
-    if (!isRunning) return;
-    const timer = window.setInterval(() => {
-      setTimeElapsed((prev) => {
-        const next = prev + 1;
-        if (elapsedRef) {
-          elapsedRef.current = next;
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
+    if (!isRunning) {
+      segmentStartRef.current = null;
+      return;
+    }
+
+    segmentStartRef.current = performance.now();
+
+    const syncElapsed = () => {
+      const now = performance.now();
+      if (segmentStartRef.current !== null) {
+        accumulatedMsRef.current += Math.max(0, now - segmentStartRef.current);
+      }
+      segmentStartRef.current = now;
+      const wholeSeconds = Math.floor(accumulatedMsRef.current / 1000);
+      if (elapsedRef) {
+        elapsedRef.current = wholeSeconds;
+      }
+      setTimeElapsed((prev) => (prev === wholeSeconds ? prev : wholeSeconds));
+    };
+
+    const timer = window.setInterval(syncElapsed, 200);
+    return () => {
+      window.clearInterval(timer);
+      if (segmentStartRef.current !== null) {
+        accumulatedMsRef.current += Math.max(0, performance.now() - segmentStartRef.current);
+        segmentStartRef.current = null;
+      }
+      const wholeSeconds = Math.floor(accumulatedMsRef.current / 1000);
+      if (elapsedRef) {
+        elapsedRef.current = wholeSeconds;
+      }
+      setTimeElapsed((prev) => (prev === wholeSeconds ? prev : wholeSeconds));
+    };
   }, [isRunning, elapsedRef]);
 
   return (

@@ -15,6 +15,10 @@ import {
   SOUND_RANK_UP_SAJAYIN8,
   RANK_UP_SAJAYIN7_GIFS,
   SOUND_RANK_UP_SAJAYIN7,
+  RANK_UP_X3_KAMEHA_GIFS,
+  SOUND_RANK_UP_X3_KAMEHA,
+  RANK_UP_GOHAN_CELL_GIFS,
+  SOUND_RANK_UP_GOHAN_CELL,
   INITIAL_REWARD_SOUNDS,
   INITIAL_REWARD_GIFS,
   MAX_MISTAKES_FOR_MAX_RANK,
@@ -28,6 +32,7 @@ import SudokuBoard from './components/SudokuBoard';
 import GameTimer, { formatTime } from './components/GameTimer';
 import VictoryModal from './components/VictoryModal';
 import RewardOverlay from './components/RewardOverlay';
+import BreakOverlay from './components/BreakOverlay';
 import {
   Settings,
   ChevronLeft,
@@ -35,7 +40,6 @@ import {
   CheckCircle2,
   XCircle,
   Calculator,
-  Coffee,
   ListChecks,
   History,
   RotateCcw,
@@ -379,6 +383,10 @@ const App: React.FC = () => {
       selectedSound = SOUND_RANK_UP_SAJAYIN8;
     } else if (RANK_UP_SAJAYIN7_GIFS.has(selectedGif)) {
       selectedSound = SOUND_RANK_UP_SAJAYIN7;
+    } else if (RANK_UP_X3_KAMEHA_GIFS.has(selectedGif)) {
+      selectedSound = SOUND_RANK_UP_X3_KAMEHA;
+    } else if (RANK_UP_GOHAN_CELL_GIFS.has(selectedGif)) {
+      selectedSound = SOUND_RANK_UP_GOHAN_CELL;
     } else {
       const currentSounds = rankUpSounds.length > 0 ? [...rankUpSounds] : [...RANK_UP_SOUNDS];
       const soundIdx = Math.floor(Math.random() * currentSounds.length);
@@ -465,6 +473,10 @@ const App: React.FC = () => {
     }, settings.rewardDuration);
     return () => clearTimeout(closeTimeout);
   }, [showRewardScreen, settings.rewardDuration, handleCloseReward]);
+
+  const handleSkipBreak = useCallback(() => {
+    setIsOnBreak(false);
+  }, []);
 
   // --- Configuration Handlers ---
   const handleAddGif = useCallback(() => {
@@ -1187,8 +1199,11 @@ const App: React.FC = () => {
           </div>
 
           {/* GAME UI CONTAINER */}
-          {!showRewardScreen && (
-            <div className="flex-grow w-full max-w-2xl flex flex-col items-center p-4 pt-6 sm:justify-center relative z-10">
+          <div
+            className={`flex-grow w-full max-w-2xl flex flex-col items-center p-4 pt-6 sm:justify-center relative z-10 ${
+              showRewardScreen ? 'hidden' : ''
+            }`}
+          >
               {/* Top Header */}
               <div className="w-full flex justify-between items-center mb-6 px-2">
                 <button
@@ -1352,7 +1367,7 @@ const App: React.FC = () => {
                           Puzzle Solved!
                         </p>
                         <p className="text-xs text-emerald-700 font-medium tabular-nums">
-                          {gameState.score.toLocaleString()} XP · {formatTime(completionTime)}
+                          {gameState.score.toLocaleString()} XP · {formatTime(completionTime)} ({completionTime.toLocaleString()}s)
                         </p>
                       </div>
                     </div>
@@ -1472,7 +1487,6 @@ const App: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
 
           {/* TOAST FEEDBACK */}
           {toastMessage && (
@@ -1958,33 +1972,12 @@ const App: React.FC = () => {
 
           {/* Break Screen */}
           {isOnBreak && (
-            <div className="fixed inset-0 z-[70] bg-slate-900 flex flex-col items-center justify-center text-white p-8 text-center">
-              <div className="mb-8 p-6 bg-emerald-500/10 rounded-full animate-pulse">
-                <Coffee size={64} className="text-emerald-400" />
-              </div>
-              <h2 className="text-4xl font-bold mb-4">Break Time</h2>
-              <p className="text-slate-400 mb-10 max-w-xs mx-auto leading-relaxed text-xl font-medium">
-                {currentBreakQuote}
-              </p>
-              <div className="text-8xl font-black font-mono tracking-tighter text-emerald-400 tabular-nums mb-8">
-                {formatTime(breakTimeLeft)}
-              </div>
-
-              <button
-                onClick={() => setIsOnBreak(false)}
-                className="px-8 py-3 rounded-full border border-white/20 hover:bg-white/10 text-white font-bold transition-all active:scale-95"
-              >
-                Skip Break
-              </button>
-
-              <p className="mt-8 text-xs text-slate-500 max-w-3xl mx-auto leading-relaxed opacity-80 px-4">
-                During rest, neural activity shifts away from constant task-focused processing,
-                allowing neurotransmitter systems like dopamine and norepinephrine to rebalance.
-                This reset improves focus, working memory, and decision-making once activity
-                resumes. In simple terms, brief pauses give the brain time to clear noise,
-                consolidate information, and return to peak performance.
-              </p>
-            </div>
+            <BreakOverlay
+              breakTimeLeft={breakTimeLeft}
+              totalBreakDuration={settings.breakDuration}
+              quote={currentBreakQuote}
+              onSkipBreak={handleSkipBreak}
+            />
           )}
         </div>
       )}

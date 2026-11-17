@@ -131,7 +131,13 @@ export const RANK_UP_GIFS: string[] = [
   "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzB6aTlqaHN6cmU3ZnQwbzViZHhyc2ZqZnpvYnc5aW85c3hhOGs0NiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pPH62kBeRY47UHh0gu/giphy.gif",
   "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzB6aTlqaHN6cmU3ZnQwbzViZHhyc2ZqZnpvYnc5aW85c3hhOGs0NiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pPH62kBeRY47UHh0gu/giphy.gif",
   "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzB6aTlqaHN6cmU3ZnQwbzViZHhyc2ZqZnpvYnc5aW85c3hhOGs0NiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pPH62kBeRY47UHh0gu/giphy.gif",
-  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzM2anBrcHhyaWNzMWVmZG56dWtwczM5dGl2ZHcwa3plaHJidzFnNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/421X0KMsZcy2XQZ6kC/giphy.gif"
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzM2anBrcHhyaWNzMWVmZG56dWtwczM5dGl2ZHcwa3plaHJidzFnNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/421X0KMsZcy2XQZ6kC/giphy.gif",
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMzU2Z3dxOXFmZ3JpenkzZXRrY2V0NXh2ZnptamgxZms3dGIycXR1NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/w1HvP1UoXDsdQUxEpj/giphy.gif",
+  "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXFxZWh6bXFvdjRlbjdibWZvbDR4anN2eG02ZmEycnVjZHl6c2dkZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/MNzgfUdRYh2PtCtx3i/giphy.gif",
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExam1odDhyYWE1NGZ4dWN0dmF2NmNlbmQzaXVteG4xcXhjbGEycmZuNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/lPMmbzvhCT2aELth9y/giphy.gif",
+  "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHFmcGxwZTcyNGtiOGNieTB0NHJuc2t1aWNoemhtdGpqOGwydG13YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wNJGCl9Z52r2Etyp6h/giphy.gif",
+  "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnc4OGYzYXZsOGRsMDJteW9lZXRicW0zNm5hencxeHd2bDE4bDFpaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8QtP5TqscKh3O/giphy.gif",
+  "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOG9mOG13ZzMycDBicnRpZ2ZhNnBuaDA2czFiaDhwNm12Y3J4NnBtZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Zx0Gzud3Wqzbq/giphy.gif"
 ];
 
 export const RANK_UP_SOUNDS: string[] = [
@@ -171,13 +177,25 @@ export const SOUND_RANK_UP_SAJAYIN8 = "https://www.myinstants.com/media/sounds/d
 
 export const RANK_UP_SAJAYIN7_GIFS: ReadonlySet<string> = new Set([
   "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZrMWMxenNmdXpkcTFkazQ5ZDlkYTFrNWF0aWw4eXNhaDkwNjdwNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dFhhNrjqikhC8/giphy.gif",
-  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZmg4Y2ZjZmczbzE3eHF2czlkcW94Z2tmZ3hsc2ZoNXc5NGJjbHltMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3l0yWAuK014di/giphy.gif",
   "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdWczbzJ6bmwxOWUxNWpheTI1MHkyZHFiZWV2bnMzYzEwNDhiY2FqZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8RWjadE23KFyw/giphy.gif",
   "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGlvdzc2MXg1cGl3eWw5ZjhsbTE0ZGNxZHhpcTRyNzhnaWR2MmhyYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/lWinKsfTai2Bi/giphy.gif",
   "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdzB6aTlqaHN6cmU3ZnQwbzViZHhyc2ZqZnpvYnc5aW85c3hhOGs0NiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pPH62kBeRY47UHh0gu/giphy.gif"
 ]);
 
 export const SOUND_RANK_UP_SAJAYIN7 = "https://www.myinstants.com/media/sounds/dbz-sajayin-7.mp3";
+
+export const RANK_UP_X3_KAMEHA_GIFS: ReadonlySet<string> = new Set([
+  "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGJ0OHNzbnM0ampkdTduNTQyemJuazA2eGw1Z2RrdzdweWN4M3V5cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KNaHmmrUBUWME/giphy.gif",
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGpqZm9pa3diZmlwdjJ0YW1zZWhqYnJreXR5Y2ozM25ldGtjejE3YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/58Uc01V78x1Uk/giphy.gif"
+]);
+
+export const SOUND_RANK_UP_X3_KAMEHA = "https://www.myinstants.com/media/sounds/x3-kameha.mp3";
+
+export const RANK_UP_GOHAN_CELL_GIFS: ReadonlySet<string> = new Set([
+  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZmg4Y2ZjZmczbzE3eHF2czlkcW94Z2tmZ3hsc2ZoNXc5NGJjbHltMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3l0yWAuK014di/giphy.gif"
+]);
+
+export const SOUND_RANK_UP_GOHAN_CELL = "https://www.myinstants.com/media/sounds/gohan-kill-cell.mp3";
 
 export const INITIAL_REWARD_SOUNDS: string[] = [
 "https\://www\.myinstants.com/media/sounds/minigame-sound-1.mp3",

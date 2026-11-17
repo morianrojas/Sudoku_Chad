@@ -263,7 +263,9 @@ const VictoryModal: React.FC<VictoryModalProps> = React.memo(
                 <span className="text-xl font-black text-white tabular-nums font-mono mt-1">
                   {formatTime(completionTime)}
                 </span>
-                <span className="text-[11px] text-slate-400">Elapsed time</span>
+                <span className="text-[11px] text-slate-400 tabular-nums">
+                  {Math.floor(completionTime / 60)}m {completionTime % 60}s · {completionTime.toLocaleString()}s total
+                </span>
               </div>
 
               <div className="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-3.5 flex flex-col">
