@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Difficulty } from '../types';
+import { RANKS } from '../data/gameData';
 import { Coffee, Brain, Flame, Trophy, Skull } from 'lucide-react';
 import chadImg1 from '../src/assets/images/chad-1.jpg';
 import chadImg2 from '../src/assets/images/chad-2.webp';
@@ -8,6 +9,7 @@ import chadImg4 from '../src/assets/images/chad-4.jpg';
 
 interface MainMenuProps {
   onStartGame: (difficulty: Difficulty) => void;
+  highestRankIndex?: number | null;
 }
 
 const chadImages = [chadImg1, chadImg2, chadImg3, chadImg4];
@@ -53,40 +55,70 @@ const difficultyConfig = {
 
 const DIFFICULTIES = Object.values(Difficulty);
 
-const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame }) => {
+const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame, highestRankIndex = null }) => {
+  const achievedRank =
+    highestRankIndex !== null && highestRankIndex >= 0 && highestRankIndex < RANKS.length
+      ? RANKS[highestRankIndex]
+      : null;
+  const [rankBgFailed, setRankBgFailed] = useState(false);
+
+  useEffect(() => {
+    setRankBgFailed(false);
+  }, [achievedRank?.img]);
+
+  const showRankBackground = Boolean(achievedRank && !rankBgFailed);
+
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-300 via-gray-200 to-slate-400 text-slate-800 p-6 overflow-hidden">
       
-      {/* Background Collage Layer */}
+      {/* Background Layer: Highest Completed Rank Image OR 4 GigaChad Collage */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
-        {/* Top Left */}
-        <img 
-          src={chadImages[0]} 
-          alt="" 
-          decoding="async"
-          className="absolute -top-4 -left-6 sm:top-2 sm:left-2 lg:left-6 w-[210px] h-[190px] sm:w-[340px] sm:h-[290px] lg:w-[440px] lg:h-[340px] object-cover object-top opacity-[0.18] grayscale rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
-        />
-        {/* Top Right */}
-        <img 
-          src={chadImages[1]} 
-          alt="" 
-          decoding="async"
-          className="absolute -top-4 -right-6 sm:top-2 sm:right-2 lg:right-6 w-[195px] h-[225px] sm:w-[300px] sm:h-[350px] lg:w-[380px] lg:h-[430px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
-        />
-        {/* Bottom Left */}
-        <img 
-          src={chadImages[2]} 
-          alt="" 
-          decoding="async"
-          className="absolute -bottom-2 -left-4 sm:bottom-0 sm:left-2 lg:left-6 w-[205px] h-[250px] sm:w-[310px] sm:h-[390px] lg:w-[380px] lg:h-[460px] object-contain object-bottom opacity-[0.18] grayscale rotate-6 mix-blend-multiply"
-        />
-        {/* Bottom Right */}
-        <img 
-          src={chadImages[3]} 
-          alt="" 
-          decoding="async"
-          className="absolute -bottom-4 -right-6 sm:bottom-2 sm:right-2 lg:right-6 w-[210px] h-[200px] sm:w-[340px] sm:h-[300px] lg:w-[440px] lg:h-[360px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
-        />
+        {showRankBackground && achievedRank ? (
+          <>
+            <img
+              src={achievedRank.img}
+              alt=""
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={() => setRankBgFailed(true)}
+              className={`w-full h-full object-cover ${
+                achievedRank.orientation === 'vertical' ? 'object-[center_20%]' : 'object-center'
+              } opacity-[0.26]`}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-200/35 via-transparent to-slate-300/45" />
+          </>
+        ) : (
+          <>
+            {/* Top Left */}
+            <img 
+              src={chadImages[0]} 
+              alt="" 
+              decoding="async"
+              className="absolute -top-4 -left-6 sm:top-2 sm:left-2 lg:left-6 w-[210px] h-[190px] sm:w-[340px] sm:h-[290px] lg:w-[440px] lg:h-[340px] object-cover object-top opacity-[0.18] grayscale rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
+            />
+            {/* Top Right */}
+            <img 
+              src={chadImages[1]} 
+              alt="" 
+              decoding="async"
+              className="absolute -top-4 -right-6 sm:top-2 sm:right-2 lg:right-6 w-[195px] h-[225px] sm:w-[300px] sm:h-[350px] lg:w-[380px] lg:h-[430px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
+            />
+            {/* Bottom Left */}
+            <img 
+              src={chadImages[2]} 
+              alt="" 
+              decoding="async"
+              className="absolute -bottom-2 -left-4 sm:bottom-0 sm:left-2 lg:left-6 w-[205px] h-[250px] sm:w-[310px] sm:h-[390px] lg:w-[380px] lg:h-[460px] object-contain object-bottom opacity-[0.18] grayscale rotate-6 mix-blend-multiply"
+            />
+            {/* Bottom Right */}
+            <img 
+              src={chadImages[3]} 
+              alt="" 
+              decoding="async"
+              className="absolute -bottom-4 -right-6 sm:bottom-2 sm:right-2 lg:right-6 w-[210px] h-[200px] sm:w-[340px] sm:h-[300px] lg:w-[440px] lg:h-[360px] object-cover object-top opacity-[0.18] grayscale -rotate-6 mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_48%,transparent_86%)]"
+            />
+          </>
+        )}
       </div>
 
       {/* Content Container */}

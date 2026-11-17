@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Difficulty } from '../types';
-import { RANKS, MAX_MISTAKES_FOR_MAX_RANK } from '../data/gameData';
+import { RANKS, MAX_MISTAKES_FOR_MAX_RANK, MAX_RANK_INDEX_BY_DIFFICULTY } from '../data/gameData';
 import { formatTime } from './GameTimer';
 import { Trophy, Crown, RotateCcw, Home, X, Zap, Clock, Target, ShieldCheck } from 'lucide-react';
 
@@ -118,7 +118,8 @@ const VictoryModal: React.FC<VictoryModalProps> = React.memo(
     }, [enableSound, volumePercent]);
 
     const rank = RANKS[rankIndex] || RANKS[0];
-    const isMaxRank = rankIndex >= RANKS.length - 1;
+    const maxRankIndex = MAX_RANK_INDEX_BY_DIFFICULTY[difficulty];
+    const isMaxRank = rankIndex >= maxRankIndex;
     const totalAttempts = hits + mistakes;
     const accuracy = totalAttempts > 0 ? Math.round((hits / totalAttempts) * 100) : 100;
     const maxAllowedMistakes = MAX_MISTAKES_FOR_MAX_RANK[difficulty];
@@ -127,9 +128,9 @@ const VictoryModal: React.FC<VictoryModalProps> = React.memo(
     let subtitle = 'Every digit locked into harmony.';
     if (mistakes === 0 && isMaxRank) {
       headline = 'Absolute Perfection!';
-      subtitle = 'Zero mistakes & Ultra Instinct mastery unlocked.';
+      subtitle = `Zero mistakes & ${rank.name} mastery unlocked.`;
     } else if (isMaxRank) {
-      headline = 'Ultra Instinct Victory!';
+      headline = `${rank.name} Victory!`;
       subtitle = `Max rank reached on ${difficulty} difficulty.`;
     } else if (mistakes === 0) {
       headline = 'Flawless Victory!';
@@ -216,7 +217,7 @@ const VictoryModal: React.FC<VictoryModalProps> = React.memo(
                 style={{ animationDelay: '0.08s' }}
               >
                 <p className="text-xs font-bold uppercase tracking-widest text-amber-300 mb-1">
-                  {difficulty} Mode · {isMaxRank ? 'Max Rank Achieved' : `Rank ${rankIndex + 1} / ${RANKS.length}`}
+                  {difficulty} Mode · {isMaxRank ? 'Max Rank Achieved' : `Rank ${rankIndex + 1} / ${maxRankIndex + 1}`}
                 </p>
                 <h2
                   id="victory-headline"

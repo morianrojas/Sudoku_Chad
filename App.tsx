@@ -22,6 +22,7 @@ import {
   INITIAL_REWARD_SOUNDS,
   INITIAL_REWARD_GIFS,
   MAX_MISTAKES_FOR_MAX_RANK,
+  MAX_RANK_INDEX_BY_DIFFICULTY,
   getRankIndexForScore,
   getRankProgressInfo,
 } from './data/gameData';
@@ -97,6 +98,7 @@ const addLog = (
 
 const App: React.FC = () => {
   const [inMenu, setInMenu] = useState(true);
+  const [highestCompletedRankIndex, setHighestCompletedRankIndex] = useState<number | null>(null);
   const [sessionId, setSessionId] = useState(0);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedCell, setSelectedCell] = useState<Coords | null>(null);
@@ -270,15 +272,18 @@ const App: React.FC = () => {
     gifBuffer.forEach(preloadImageUrl);
   }, [inMenu, settings.enableVisualRewards, gifBuffer, preloadImageUrl]);
 
-  // Only preload current + next 2 upcoming rank images instead of all 16 wallpapers
+  // Only preload current + next 2 upcoming rank images (capped by difficulty max rank)
   const currentRankIdx = gameState ? gameState.rankIndex : 0;
+  const maxRankForCurrentDifficulty = gameState
+    ? MAX_RANK_INDEX_BY_DIFFICULTY[gameState.difficulty] + 1
+    : RANKS.length;
   useEffect(() => {
     if (inMenu) return;
-    const endIdx = Math.min(RANKS.length, currentRankIdx + 3);
+    const endIdx = Math.min(maxRankForCurrentDifficulty, currentRankIdx + 3);
     for (let i = currentRankIdx; i < endIdx; i++) {
       preloadImageUrl(RANKS[i].img);
     }
-  }, [inMenu, currentRankIdx, preloadImageUrl]);
+  }, [inMenu, currentRankIdx, maxRankForCurrentDifficulty, preloadImageUrl]);
 
   // --- AUDIO HELPERS ---
   const playSound = useCallback((url: string, volumePercent: number) => {
@@ -596,15 +601,19 @@ const App: React.FC = () => {
       ];
 
       if (keepProgress && prev) {
+        const clampedRankIndex = Math.min(
+          prev.rankIndex,
+          MAX_RANK_INDEX_BY_DIFFICULTY[difficulty]
+        );
         stats = {
           mistakes: prev.mistakes,
           hits: prev.hits,
           score: prev.score,
           currentStreak: prev.currentStreak,
-          rankIndex: prev.rankIndex,
+          rankIndex: clampedRankIndex,
           rankProgress: getRankProgressInfo(
             prev.score,
-            prev.rankIndex,
+            clampedRankIndex,
             difficulty,
             0,
             3,
@@ -775,9 +784,10 @@ const App: React.FC = () => {
               const pointsGained = Math.round(points * multiplier);
               newScore += pointsGained;
 
-              // Ranks 1..14 unlock via XP; Rank 15 (Ultra Instinct) ONLY unlocks on full board completion within error limits
+              // XP unlocks up to (maxRankIndex - 1); the difficulty's max rank ONLY unlocks on full board completion within error limits
+              const maxRankIndex = MAX_RANK_INDEX_BY_DIFFICULTY[gameState.difficulty];
               const xpRankIndex = getRankIndexForScore(newScore, gameState.difficulty);
-              const targetRankIndex = canUnlockMaxRank ? RANKS.length - 1 : xpRankIndex;
+              const targetRankIndex = canUnlockMaxRank ? maxRankIndex : xpRankIndex;
               let isRankUpEvent = false;
               if (targetRankIndex > newRankIndex) {
                 newRankIndex = targetRankIndex;
@@ -842,9 +852,10 @@ const App: React.FC = () => {
               logType = 'info';
             }
           } else {
-            // Final contaminated cell can still complete the board and award Rank 15 if within error limit
-            if (canUnlockMaxRank && newRankIndex < RANKS.length - 1) {
-              newRankIndex = RANKS.length - 1;
+            // Final contaminated cell can still complete the board and award the difficulty's max rank if within error limit
+            const maxRankIndex = MAX_RANK_INDEX_BY_DIFFICULTY[gameState.difficulty];
+            if (canUnlockMaxRank && newRankIndex < maxRankIndex) {
+              newRankIndex = maxRankIndex;
               logMsg = `PROMOTED to ${RANKS[newRankIndex].name}!`;
               logType = 'rank-up';
               if (settings.enableVisualRewards) {
@@ -947,6 +958,9 @@ const App: React.FC = () => {
       );
 
       if (isComplete) {
+        setHighestCompletedRankIndex((prev) =>
+          prev === null ? newRankIndex : Math.max(prev, newRankIndex)
+        );
         setCompletionTime(finalElapsed);
         if (rewardTriggered) {
           setIsVictoryQueued(true);
@@ -1076,6 +1090,9 @@ const App: React.FC = () => {
     });
 
     if (isComplete) {
+      setHighestCompletedRankIndex((prev) =>
+        prev === null ? gameState.rankIndex : Math.max(prev, gameState.rankIndex)
+      );
       setCompletionTime(finalElapsed);
       setShowVictoryModal(true);
     }
@@ -1189,7 +1206,12 @@ const App: React.FC = () => {
 
   return (
     <>
-      {inMenu && <MainMenu onStartGame={requestNewGame} />}
+      {inMenu && (
+        <MainMenu
+          onStartGame={requestNewGame}
+          highestRankIndex={highestCompletedRankIndex}
+        />
+      )}
 
       {!inMenu && gameState && (
         <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center relative text-slate-800 overflow-x-hidden">

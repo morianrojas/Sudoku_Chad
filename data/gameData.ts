@@ -525,8 +525,20 @@ export const INITIAL_REWARD_GIFS: string[] = [
 ];
 
 // --- PER-DIFFICULTY RANK-UP RULES ---
-// Ranks 1..14 (Silver through Warrior of Liberation) unlock progressively via XP scaled to each difficulty.
-// Rank 15 (Ultra Instinct, Max Rank) ONLY unlocks upon completing the entire board without using hints
+// Max rank achievable per difficulty:
+//   - Easy: Rank 8 (Legend)
+//   - Medium: Rank 11 (Super Iridescent)
+//   - Hard: Rank 13 (God Level)
+//   - Legendary & Insane: Rank 15 (Ultra Instinct)
+export const MAX_RANK_INDEX_BY_DIFFICULTY: Record<Difficulty, number> = {
+  [Difficulty.EASY]: 8,
+  [Difficulty.MEDIUM]: 11,
+  [Difficulty.HARD]: 13,
+  [Difficulty.LEGENDARY]: 15,
+  [Difficulty.INSANE]: 15,
+};
+
+// The final rank for each difficulty ONLY unlocks upon completing the entire board without using hints
 // and staying within the difficulty's allowed mistake limit:
 //   - Easy & Medium: 0 mistakes (perfect board)
 //   - Hard: up to 1 mistake (all other cells solved cleanly)
@@ -540,17 +552,18 @@ export const MAX_MISTAKES_FOR_MAX_RANK: Record<Difficulty, number> = {
 };
 
 export const RANK_XP_THRESHOLDS: Record<Difficulty, readonly number[]> = {
-  [Difficulty.EASY]: [70, 170, 290, 430, 590, 750, 920, 1100, 1290, 1490, 1700, 1910, 2130, 2350],
-  [Difficulty.MEDIUM]: [100, 260, 440, 650, 880, 1130, 1390, 1670, 1960, 2250, 2560, 2880, 3210, 3550],
-  [Difficulty.HARD]: [110, 280, 480, 710, 960, 1230, 1510, 1810, 2120, 2440, 2780, 3130, 3480, 3850],
+  [Difficulty.EASY]: [230, 510, 820, 1180, 1570, 2010, 2480],
+  [Difficulty.MEDIUM]: [230, 510, 820, 1180, 1570, 2010, 2480, 3000, 3410, 3850],
+  [Difficulty.HARD]: [230, 430, 660, 990, 1270, 1570, 2010, 2360, 2740, 3130, 3560, 4000],
   [Difficulty.LEGENDARY]: [110, 290, 500, 740, 1000, 1270, 1570, 1880, 2200, 2540, 2890, 3250, 3620, 4000],
   [Difficulty.INSANE]: [130, 330, 570, 850, 1150, 1470, 1800, 2160, 2530, 2920, 3320, 3740, 4160, 4600],
 };
 
-// Returns XP-based rank capped at Rank 14 (Warrior of Liberation).
-// Rank 15 (Ultra Instinct) is gated on board completion + mistake limit.
+// Returns XP-based rank capped at (maxRankIndex - 1) for the difficulty.
+// The difficulty's final rank is gated on board completion + mistake limit.
 export const getRankIndexForScore = (score: number, difficulty: Difficulty): number => {
   const thresholds = RANK_XP_THRESHOLDS[difficulty];
+  const maxXpRankIndex = MAX_RANK_INDEX_BY_DIFFICULTY[difficulty] - 1;
   let rankIndex = 0;
   for (let i = 0; i < thresholds.length; i++) {
     if (score >= thresholds[i]) {
@@ -559,7 +572,7 @@ export const getRankIndexForScore = (score: number, difficulty: Difficulty): num
       break;
     }
   }
-  return Math.min(rankIndex, RANKS.length - 2);
+  return Math.min(rankIndex, maxXpRankIndex);
 };
 
 export interface RankProgressInfo {
@@ -582,11 +595,12 @@ export const getRankProgressInfo = (
   totalEmptyCells?: number
 ): RankProgressInfo => {
   const thresholds = RANK_XP_THRESHOLDS[difficulty];
+  const maxRankIndex = MAX_RANK_INDEX_BY_DIFFICULTY[difficulty];
   const maxAllowedMistakes = MAX_MISTAKES_FOR_MAX_RANK[difficulty];
   const isMaxRankLockedOut = sessionMistakes > maxAllowedMistakes || hintsRemaining < 3;
   const lastXpThreshold = thresholds[thresholds.length - 1];
 
-  if (rankIndex >= RANKS.length - 1) {
+  if (rankIndex >= maxRankIndex) {
     return {
       isMaxRank: true,
       isAwaitingCompletion: false,
@@ -598,8 +612,8 @@ export const getRankProgressInfo = (
     };
   }
 
-  // At Rank 14 (Warrior of Liberation): next step is Rank 15 (Ultra Instinct) on full board completion
-  if (rankIndex === RANKS.length - 2) {
+  // At penultimate rank for this difficulty: next step is the difficulty's max rank on full board completion
+  if (rankIndex === maxRankIndex - 1) {
     const boardPct =
       totalEmptyCells && totalEmptyCells > 0 && filledEmptyCount !== undefined
         ? Math.max(0, Math.min(99, Math.round((filledEmptyCount / totalEmptyCells) * 100)))
@@ -616,7 +630,7 @@ export const getRankProgressInfo = (
   }
 
   const prevThreshold = rankIndex === 0 ? 0 : thresholds[rankIndex - 1];
-  const nextThreshold = thresholds[rankIndex];
+  const nextThreshold = thresholds[rankIndex] ?? lastXpThreshold;
   const span = Math.max(1, nextThreshold - prevThreshold);
   const progressPercent = Math.max(
     0,
