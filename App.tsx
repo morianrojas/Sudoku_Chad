@@ -126,6 +126,7 @@ const App: React.FC = () => {
     enableVisualRewards: true,
     enableRewardSounds: true,
     showActivityLog: false,
+    showRewardTimerBar: false,
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showRewardConfig, setShowRewardConfig] = useState(false);
@@ -284,6 +285,12 @@ const App: React.FC = () => {
       preloadImageUrl(RANKS[i].img);
     }
   }, [inMenu, currentRankIdx, maxRankForCurrentDifficulty, preloadImageUrl]);
+
+  // Preload a couple of rank-up GIFs when visual rewards are active so rank-up opens without network lag
+  useEffect(() => {
+    if (inMenu || !settings.enableVisualRewards) return;
+    rankUpGifs.slice(0, 3).forEach(preloadImageUrl);
+  }, [inMenu, settings.enableVisualRewards, rankUpGifs, preloadImageUrl]);
 
   // --- AUDIO HELPERS ---
   const playSound = useCallback((url: string, volumePercent: number) => {
@@ -1626,6 +1633,25 @@ const App: React.FC = () => {
                       <ToggleLeft size={32} />
                     )}
                   </button>
+
+                  <button
+                    onClick={() =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        showRewardTimerBar: !prev.showRewardTimerBar,
+                      }))
+                    }
+                    className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${settings.showRewardTimerBar ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      Reward Timer Bar
+                    </span>
+                    {settings.showRewardTimerBar ? (
+                      <ToggleRight size={32} />
+                    ) : (
+                      <ToggleLeft size={32} />
+                    )}
+                  </button>
                 </div>
 
                 {/* Operations Target */}
@@ -1986,8 +2012,10 @@ const App: React.FC = () => {
               gifUrl={currentGif}
               quote={currentRewardData.quote}
               xp={currentRewardData.xp}
+              totalXp={gameState.score}
               rankIndex={currentRewardData.rankIndex}
               rewardDurationMs={settings.rewardDuration}
+              showTimerBar={settings.showRewardTimerBar}
               onClose={handleCloseReward}
             />
           )}

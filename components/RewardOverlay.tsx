@@ -6,661 +6,673 @@ interface RewardOverlayProps {
   gifUrl: string;
   quote: string;
   xp: number;
+  totalXp?: number;
   rankIndex?: number;
   rewardDurationMs: number;
+  showTimerBar?: boolean;
   onClose: () => void;
 }
 
-const RANKUP_SPARKS = [
-  { id: 0, tx: '-130px', ty: '-75px', rot: '180deg', delay: '0.02s', color: 'bg-amber-500', size: 'w-3 h-2.5' },
-  { id: 1, tx: '-95px', ty: '-115px', rot: '-210deg', delay: '0.06s', color: 'bg-red-600', size: 'w-2.5 h-3.5' },
-  { id: 2, tx: '-35px', ty: '-125px', rot: '260deg', delay: '0.04s', color: 'bg-slate-800', size: 'w-3 h-2' },
-  { id: 3, tx: '40px', ty: '-125px', rot: '-240deg', delay: '0.05s', color: 'bg-orange-600', size: 'w-2.5 h-3' },
-  { id: 4, tx: '100px', ty: '-110px', rot: '220deg', delay: '0.08s', color: 'bg-amber-600', size: 'w-2.5 h-3.5' },
-  { id: 5, tx: '135px', ty: '-70px', rot: '-190deg', delay: '0.03s', color: 'bg-red-700', size: 'w-3 h-2.5' },
-  { id: 6, tx: '-145px', ty: '15px', rot: '280deg', delay: '0.09s', color: 'bg-slate-700', size: 'w-2.5 h-3' },
-  { id: 7, tx: '145px', ty: '20px', rot: '-270deg', delay: '0.07s', color: 'bg-amber-500', size: 'w-3 h-2' },
+type NormalRewardPresetId =
+  | 'titan-surge'
+  | 'war-glitch'
+  | 'monolith-flip'
+  | 'blitz-strike'
+  | 'anvil-stamp'
+  | 'valhalla-mist';
+
+const PRESET_IDS: NormalRewardPresetId[] = [
+  'titan-surge',
+  'war-glitch',
+  'monolith-flip',
+  'blitz-strike',
+  'anvil-stamp',
+  'valhalla-mist',
 ];
 
-type NormalSparkPreset =
-  | 'ceiling-cascade'
-  | 'two-way-street'
-  | 'diagonal-sweep'
-  | 'floor-ascension'
-  | 'diagonal-cross'
-  | 'radial-burst';
+let presetBag: NormalRewardPresetId[] = [];
+let lastPresetId: NormalRewardPresetId | null = null;
 
-const NORMAL_SPARK_PRESETS: NormalSparkPreset[] = [
-  'ceiling-cascade',
-  'two-way-street',
-  'diagonal-sweep',
-  'floor-ascension',
-  'diagonal-cross',
-  'radial-burst',
-];
-
-let normalSparkBag: NormalSparkPreset[] = [];
-let lastNormalSparkPreset: NormalSparkPreset | null = null;
-
-function popNextNormalSparkPreset(): NormalSparkPreset {
-  if (normalSparkBag.length === 0) {
-    const nextBag = [...NORMAL_SPARK_PRESETS];
+function popNextRewardPreset(): NormalRewardPresetId {
+  if (presetBag.length === 0) {
+    const nextBag = [...PRESET_IDS];
     for (let i = nextBag.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [nextBag[i], nextBag[j]] = [nextBag[j], nextBag[i]];
     }
-    if (nextBag.length > 1 && nextBag[nextBag.length - 1] === lastNormalSparkPreset) {
+    // Since we pop() from the end, swap last element with index 0 if it matches previous preset
+    if (nextBag.length > 1 && nextBag[nextBag.length - 1] === lastPresetId) {
       [nextBag[0], nextBag[nextBag.length - 1]] = [nextBag[nextBag.length - 1], nextBag[0]];
     }
-    normalSparkBag = nextBag;
+    presetBag = nextBag;
   }
-  const picked = normalSparkBag.pop()!;
-  lastNormalSparkPreset = picked;
+  const picked = presetBag.pop()!;
+  lastPresetId = picked;
   return picked;
 }
 
-type SparkShape = 'ember' | 'blade' | 'bolt' | 'chevron';
+type ParticleVariant =
+  | 'embers'
+  | 'hud-bars'
+  | 'diamonds'
+  | 'slashes'
+  | 'radial-burst'
+  | 'cinders';
 
-interface EnergySparkSpec {
-  id: number;
-  left: string;
-  top: string;
-  mx: string;
-  my: string;
-  dx: string;
-  dy: string;
-  srot: string;
-  mrot: string;
-  erot: string;
-  peakScale: number;
-  duration: string;
-  delay: string;
-  size: number;
-  shape: SparkShape;
-  colorIdx: number;
+interface PresetTheme {
+  textEntryClass: string;
+  textIdleClass: string;
+  gifEntryClass: string;
+  gifIdleClass: string;
+  titleGradient: string;
+  titleGlow: string;
+  gifFrameClass: string;
+  xpCardClass: string;
+  xpBadgeColor: string;
+  countdownClass: string;
+  spotlightStyle: string;
+  particleVariant: ParticleVariant;
 }
 
-interface EnergyStreakSpec {
-  id: number;
-  left: string;
-  top: string;
-  angle: string;
-  dist: string;
-  width: string;
-  duration: string;
-  delay: string;
-  colorIdx: number;
-}
-
-interface SparkChoreography {
-  sparks: EnergySparkSpec[];
-  streaks: EnergyStreakSpec[];
-}
-
-const NORMAL_PRESET_DATA: Record<NormalSparkPreset, SparkChoreography> = {
-  // 1. Falling strictly from the ceiling downward (Artillery embers & downward blades)
-  'ceiling-cascade': {
-    sparks: [
-      { id: 0, left: '8%', top: '-6%', mx: '12px', my: '56vh', dx: '-8px', dy: '114vh', srot: '165deg', mrot: '185deg', erot: '205deg', peakScale: 1.2, duration: '2.5s', delay: '0s', size: 17, shape: 'blade', colorIdx: 0 },
-      { id: 1, left: '17%', top: '-6%', mx: '-14px', my: '56vh', dx: '10px', dy: '114vh', srot: '15deg', mrot: '125deg', erot: '235deg', peakScale: 1.15, duration: '2.9s', delay: '0.55s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 2, left: '26%', top: '-6%', mx: '16px', my: '56vh', dx: '-10px', dy: '114vh', srot: '0deg', mrot: '-35deg', erot: '-70deg', peakScale: 1.2, duration: '2.3s', delay: '1.1s', size: 17, shape: 'bolt', colorIdx: 1 },
-      { id: 3, left: '36%', top: '-6%', mx: '-12px', my: '56vh', dx: '14px', dy: '114vh', srot: '20deg', mrot: '130deg', erot: '240deg', peakScale: 1.15, duration: '2.7s', delay: '0.25s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 4, left: '47%', top: '-6%', mx: '10px', my: '56vh', dx: '-12px', dy: '114vh', srot: '180deg', mrot: '180deg', erot: '180deg', peakScale: 1.25, duration: '2.4s', delay: '0.85s', size: 18, shape: 'blade', colorIdx: 0 },
-      { id: 5, left: '58%', top: '-6%', mx: '-16px', my: '56vh', dx: '8px', dy: '114vh', srot: '10deg', mrot: '-110deg', erot: '-220deg', peakScale: 1.15, duration: '2.8s', delay: '1.4s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 6, left: '68%', top: '-6%', mx: '14px', my: '56vh', dx: '-10px', dy: '114vh', srot: '0deg', mrot: '40deg', erot: '85deg', peakScale: 1.2, duration: '2.35s', delay: '0.4s', size: 17, shape: 'bolt', colorIdx: 1 },
-      { id: 7, left: '78%', top: '-6%', mx: '-10px', my: '56vh', dx: '12px', dy: '114vh', srot: '25deg', mrot: '145deg', erot: '260deg', peakScale: 1.1, duration: '2.65s', delay: '0.95s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 8, left: '87%', top: '-6%', mx: '12px', my: '56vh', dx: '-14px', dy: '114vh', srot: '175deg', mrot: '190deg', erot: '205deg', peakScale: 1.2, duration: '2.55s', delay: '0.15s', size: 16, shape: 'blade', colorIdx: 0 },
-      { id: 9, left: '94%', top: '-6%', mx: '-14px', my: '56vh', dx: '8px', dy: '114vh', srot: '10deg', mrot: '115deg', erot: '220deg', peakScale: 1.15, duration: '2.95s', delay: '1.25s', size: 14, shape: 'ember', colorIdx: 2 },
-    ],
-    streaks: [
-      { id: 0, left: '12%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-16', duration: '1.65s', delay: '0s', colorIdx: 0 },
-      { id: 1, left: '29%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-14', duration: '1.8s', delay: '0.45s', colorIdx: 1 },
-      { id: 2, left: '44%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-20', duration: '1.55s', delay: '0.9s', colorIdx: 2 },
-      { id: 3, left: '63%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-16', duration: '1.75s', delay: '0.25s', colorIdx: 0 },
-      { id: 4, left: '75%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-14', duration: '1.6s', delay: '0.7s', colorIdx: 1 },
-      { id: 5, left: '90%', top: '-8%', angle: '90deg', dist: '118vh', width: 'w-16', duration: '1.85s', delay: '1.2s', colorIdx: 2 },
-    ],
+const PRESET_THEMES: Record<NormalRewardPresetId, PresetTheme> = {
+  'titan-surge': {
+    textEntryClass: 'anim-text-titan-surge',
+    textIdleClass: 'anim-idle-levitate',
+    gifEntryClass: 'anim-gif-surge-zoom',
+    gifIdleClass: 'anim-idle-levitate',
+    titleGradient: 'from-amber-300 via-orange-400 to-yellow-100',
+    titleGlow: 'drop-shadow-[0_0_22px_rgba(245,158,11,0.55)]',
+    gifFrameClass: 'border-amber-400/70 shadow-[0_0_38px_rgba(245,158,11,0.38)]',
+    xpCardClass: 'border-amber-400/45 bg-slate-900/85 shadow-[0_0_26px_rgba(245,158,11,0.28)]',
+    xpBadgeColor: 'text-amber-300',
+    countdownClass: 'from-amber-400 via-orange-500 to-yellow-300',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(245,158,11,0.18), rgba(234,88,12,0.08) 42%, transparent 72%)',
+    particleVariant: 'embers',
   },
-
-  // 2. Two-Way "Street" Lanes: Opposing crossfire spear-blades & hot shrapnel
-  'two-way-street': {
-    sparks: [
-      // Left -> Right lanes
-      { id: 0, left: '-5%', top: '14%', mx: '56vw', my: '-8px', dx: '114vw', dy: '4px', srot: '90deg', mrot: '90deg', erot: '90deg', peakScale: 1.25, duration: '2.0s', delay: '0s', size: 18, shape: 'blade', colorIdx: 0 },
-      { id: 1, left: '-5%', top: '28%', mx: '56vw', my: '10px', dx: '114vw', dy: '-4px', srot: '15deg', mrot: '145deg', erot: '275deg', peakScale: 1.15, duration: '2.3s', delay: '0.65s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 2, left: '-5%', top: '66%', mx: '56vw', my: '-8px', dx: '114vw', dy: '6px', srot: '90deg', mrot: '90deg', erot: '90deg', peakScale: 1.2, duration: '1.95s', delay: '0.3s', size: 17, shape: 'chevron', colorIdx: 1 },
-      { id: 3, left: '-5%', top: '80%', mx: '56vw', my: '8px', dx: '114vw', dy: '-6px', srot: '10deg', mrot: '125deg', erot: '250deg', peakScale: 1.15, duration: '2.2s', delay: '1.1s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 4, left: '-5%', top: '48%', mx: '56vw', my: '-6px', dx: '114vw', dy: '4px', srot: '70deg', mrot: '95deg', erot: '115deg', peakScale: 1.15, duration: '2.35s', delay: '1.35s', size: 15, shape: 'bolt', colorIdx: 0 },
-      // Right -> Left opposing lanes
-      { id: 5, left: '105%', top: '21%', mx: '-56vw', my: '8px', dx: '-114vw', dy: '-4px', srot: '-90deg', mrot: '-90deg', erot: '-90deg', peakScale: 1.25, duration: '2.05s', delay: '0.2s', size: 18, shape: 'blade', colorIdx: 1 },
-      { id: 6, left: '105%', top: '36%', mx: '-56vw', my: '-10px', dx: '-114vw', dy: '4px', srot: '15deg', mrot: '-140deg', erot: '-280deg', peakScale: 1.15, duration: '2.35s', delay: '0.9s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 7, left: '105%', top: '73%', mx: '-56vw', my: '10px', dx: '-114vw', dy: '-6px', srot: '-90deg', mrot: '-90deg', erot: '-90deg', peakScale: 1.2, duration: '1.95s', delay: '0.5s', size: 17, shape: 'chevron', colorIdx: 2 },
-      { id: 8, left: '105%', top: '87%', mx: '-56vw', my: '-8px', dx: '-114vw', dy: '6px', srot: '10deg', mrot: '-120deg', erot: '-240deg', peakScale: 1.15, duration: '2.25s', delay: '1.25s', size: 15, shape: 'ember', colorIdx: 0 },
-      { id: 9, left: '105%', top: '55%', mx: '-56vw', my: '6px', dx: '-114vw', dy: '-4px', srot: '-75deg', mrot: '-95deg', erot: '-115deg', peakScale: 1.15, duration: '2.4s', delay: '0.75s', size: 15, shape: 'bolt', colorIdx: 3 },
-    ],
-    streaks: [
-      { id: 0, left: '-8%', top: '17%', angle: '0deg', dist: '118vw', width: 'w-24', duration: '1.5s', delay: '0.1s', colorIdx: 0 },
-      { id: 1, left: '108%', top: '24%', angle: '180deg', dist: '118vw', width: 'w-24', duration: '1.6s', delay: '0.4s', colorIdx: 1 },
-      { id: 2, left: '-8%', top: '33%', angle: '0deg', dist: '118vw', width: 'w-20', duration: '1.7s', delay: '0.85s', colorIdx: 2 },
-      { id: 3, left: '108%', top: '70%', angle: '180deg', dist: '118vw', width: 'w-24', duration: '1.55s', delay: '0.25s', colorIdx: 0 },
-      { id: 4, left: '-8%', top: '77%', angle: '0deg', dist: '118vw', width: 'w-24', duration: '1.65s', delay: '0.65s', colorIdx: 1 },
-      { id: 5, left: '108%', top: '85%', angle: '180deg', dist: '118vw', width: 'w-20', duration: '1.75s', delay: '1.1s', colorIdx: 2 },
-    ],
+  'war-glitch': {
+    textEntryClass: 'anim-text-war-glitch',
+    textIdleClass: 'anim-idle-glitch',
+    gifEntryClass: 'anim-gif-war-glitch',
+    gifIdleClass: '',
+    titleGradient: 'from-slate-100 via-sky-400 to-red-500',
+    titleGlow: 'drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]',
+    gifFrameClass: 'border-sky-400/70 shadow-[0_0_36px_rgba(56,189,248,0.35),0_0_60px_rgba(239,68,68,0.2)]',
+    xpCardClass: 'border-sky-400/45 bg-slate-900/85 shadow-[0_0_24px_rgba(56,189,248,0.25)]',
+    xpBadgeColor: 'text-sky-300',
+    countdownClass: 'from-sky-400 via-slate-200 to-red-500',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(56,189,248,0.16), rgba(239,68,68,0.1) 42%, transparent 72%)',
+    particleVariant: 'hud-bars',
   },
-
-  // 3. Parallel Diagonal Sweep (Angled steel & fire barrage Top-Left -> Bottom-Right)
-  'diagonal-sweep': {
-    sparks: [
-      { id: 0, left: '-5%', top: '10%', mx: '54vw', my: '44vh', dx: '110vw', dy: '90vh', srot: '128deg', mrot: '128deg', erot: '128deg', peakScale: 1.25, duration: '2.3s', delay: '0s', size: 18, shape: 'blade', colorIdx: 0 },
-      { id: 1, left: '-5%', top: '35%', mx: '46vw', my: '38vh', dx: '94vw', dy: '78vh', srot: '15deg', mrot: '135deg', erot: '250deg', peakScale: 1.15, duration: '2.2s', delay: '0.5s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 2, left: '-5%', top: '62%', mx: '34vw', my: '28vh', dx: '70vw', dy: '58vh', srot: '115deg', mrot: '130deg', erot: '145deg', peakScale: 1.15, duration: '2.0s', delay: '1.0s', size: 17, shape: 'bolt', colorIdx: 1 },
-      { id: 3, left: '14%', top: '-5%', mx: '48vw', my: '52vh', dx: '98vw', dy: '108vh', srot: '128deg', mrot: '128deg', erot: '128deg', peakScale: 1.25, duration: '2.4s', delay: '0.25s', size: 19, shape: 'blade', colorIdx: 3 },
-      { id: 4, left: '34%', top: '-5%', mx: '42vw', my: '52vh', dx: '86vw', dy: '108vh', srot: '0deg', mrot: '120deg', erot: '240deg', peakScale: 1.15, duration: '2.3s', delay: '0.75s', size: 15, shape: 'ember', colorIdx: 0 },
-      { id: 5, left: '54%', top: '-5%', mx: '32vw', my: '50vh', dx: '66vw', dy: '104vh', srot: '128deg', mrot: '128deg', erot: '128deg', peakScale: 1.2, duration: '2.1s', delay: '1.25s', size: 17, shape: 'chevron', colorIdx: 2 },
-      { id: 6, left: '72%', top: '-5%', mx: '22vw', my: '42vh', dx: '46vw', dy: '86vh', srot: '0deg', mrot: '110deg', erot: '220deg', peakScale: 1.15, duration: '1.9s', delay: '0.4s', size: 14, shape: 'ember', colorIdx: 1 },
-      { id: 7, left: '4%', top: '-5%', mx: '52vw', my: '54vh', dx: '106vw', dy: '110vh', srot: '125deg', mrot: '135deg', erot: '145deg', peakScale: 1.25, duration: '2.5s', delay: '1.45s', size: 18, shape: 'bolt', colorIdx: 3 },
-    ],
-    streaks: [
-      { id: 0, left: '-6%', top: '4%', angle: '38deg', dist: '135vmax', width: 'w-24', duration: '1.65s', delay: '0.1s', colorIdx: 0 },
-      { id: 1, left: '-6%', top: '28%', angle: '38deg', dist: '120vmax', width: 'w-20', duration: '1.75s', delay: '0.6s', colorIdx: 1 },
-      { id: 2, left: '-6%', top: '54%', angle: '38deg', dist: '95vmax', width: 'w-16', duration: '1.6s', delay: '1.05s', colorIdx: 2 },
-      { id: 3, left: '22%', top: '-6%', angle: '38deg', dist: '130vmax', width: 'w-24', duration: '1.7s', delay: '0.35s', colorIdx: 0 },
-      { id: 4, left: '48%', top: '-6%', angle: '38deg', dist: '110vmax', width: 'w-20', duration: '1.65s', delay: '0.85s', colorIdx: 1 },
-      { id: 5, left: '70%', top: '-6%', angle: '38deg', dist: '85vmax', width: 'w-16', duration: '1.55s', delay: '1.3s', colorIdx: 2 },
-    ],
+  'monolith-flip': {
+    textEntryClass: 'anim-text-monolith-flip',
+    textIdleClass: 'anim-idle-tilt',
+    gifEntryClass: 'anim-gif-monolith-turn',
+    gifIdleClass: '',
+    titleGradient: 'from-slate-100 via-amber-300 to-orange-400',
+    titleGlow: 'drop-shadow-[0_0_20px_rgba(251,191,36,0.45)]',
+    gifFrameClass: 'border-slate-200/70 shadow-[0_0_38px_rgba(226,232,240,0.28),0_0_64px_rgba(245,158,11,0.25)]',
+    xpCardClass: 'border-slate-300/45 bg-slate-900/85 shadow-[0_0_24px_rgba(226,232,240,0.2)]',
+    xpBadgeColor: 'text-amber-200',
+    countdownClass: 'from-slate-200 via-amber-400 to-orange-500',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(226,232,240,0.15), rgba(245,158,11,0.1) 42%, transparent 72%)',
+    particleVariant: 'diamonds',
   },
-
-  // 4. Rising strictly from bottom floor upward (Forge embers & upward war-chevrons)
-  'floor-ascension': {
-    sparks: [
-      { id: 0, left: '10%', top: '106%', mx: '16px', my: '-56vh', dx: '-12px', dy: '-114vh', srot: '0deg', mrot: '115deg', erot: '230deg', peakScale: 1.2, duration: '2.4s', delay: '0s', size: 17, shape: 'ember', colorIdx: 0 },
-      { id: 1, left: '20%', top: '106%', mx: '-18px', my: '-56vh', dx: '10px', dy: '-114vh', srot: '0deg', mrot: '0deg', erot: '0deg', peakScale: 1.2, duration: '2.7s', delay: '0.5s', size: 17, shape: 'chevron', colorIdx: 2 },
-      { id: 2, left: '30%', top: '106%', mx: '14px', my: '-56vh', dx: '-10px', dy: '-114vh', srot: '-12deg', mrot: '12deg', erot: '-8deg', peakScale: 1.2, duration: '2.25s', delay: '1.05s', size: 17, shape: 'bolt', colorIdx: 1 },
-      { id: 3, left: '41%', top: '106%', mx: '-14px', my: '-56vh', dx: '12px', dy: '-114vh', srot: '20deg', mrot: '140deg', erot: '260deg', peakScale: 1.15, duration: '2.6s', delay: '0.25s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 4, left: '52%', top: '106%', mx: '18px', my: '-56vh', dx: '-14px', dy: '-114vh', srot: '0deg', mrot: '-8deg', erot: '8deg', peakScale: 1.25, duration: '2.35s', delay: '0.8s', size: 18, shape: 'blade', colorIdx: 0 },
-      { id: 5, left: '62%', top: '106%', mx: '-16px', my: '-56vh', dx: '14px', dy: '-114vh', srot: '10deg', mrot: '-115deg', erot: '-230deg', peakScale: 1.15, duration: '2.7s', delay: '1.35s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 6, left: '72%', top: '106%', mx: '12px', my: '-56vh', dx: '-8px', dy: '-114vh', srot: '0deg', mrot: '0deg', erot: '0deg', peakScale: 1.2, duration: '2.3s', delay: '0.4s', size: 17, shape: 'chevron', colorIdx: 1 },
-      { id: 7, left: '82%', top: '106%', mx: '-14px', my: '-56vh', dx: '16px', dy: '-114vh', srot: '25deg', mrot: '-130deg', erot: '-260deg', peakScale: 1.15, duration: '2.55s', delay: '0.95s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 8, left: '91%', top: '106%', mx: '12px', my: '-56vh', dx: '-10px', dy: '-114vh', srot: '8deg', mrot: '-10deg', erot: '12deg', peakScale: 1.2, duration: '2.45s', delay: '0.15s', size: 16, shape: 'bolt', colorIdx: 0 },
-    ],
-    streaks: [
-      { id: 0, left: '14%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-16', duration: '1.65s', delay: '0s', colorIdx: 0 },
-      { id: 1, left: '28%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-20', duration: '1.8s', delay: '0.5s', colorIdx: 1 },
-      { id: 2, left: '46%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-16', duration: '1.6s', delay: '0.95s', colorIdx: 2 },
-      { id: 3, left: '66%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-20', duration: '1.75s', delay: '0.3s', colorIdx: 0 },
-      { id: 4, left: '80%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-16', duration: '1.7s', delay: '0.75s', colorIdx: 1 },
-      { id: 5, left: '92%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-14', duration: '1.85s', delay: '1.2s', colorIdx: 2 },
-    ],
+  'blitz-strike': {
+    textEntryClass: 'anim-text-blitz-left',
+    textIdleClass: 'anim-idle-sway',
+    gifEntryClass: 'anim-gif-blitz-right',
+    gifIdleClass: '',
+    titleGradient: 'from-red-500 via-amber-400 to-slate-100',
+    titleGlow: 'drop-shadow-[0_0_22px_rgba(239,68,68,0.55)]',
+    gifFrameClass: 'border-red-500/75 shadow-[0_0_40px_rgba(239,68,68,0.38)]',
+    xpCardClass: 'border-red-500/50 bg-slate-900/85 shadow-[0_0_26px_rgba(239,68,68,0.28)]',
+    xpBadgeColor: 'text-red-300',
+    countdownClass: 'from-red-500 via-amber-400 to-white',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(239,68,68,0.2), rgba(245,158,11,0.08) 42%, transparent 72%)',
+    particleVariant: 'slashes',
   },
-
-  // 5. X-Cross Diagonals (Four-corner blade & bolt clash across the arena)
-  'diagonal-cross': {
-    sparks: [
-      { id: 0, left: '-4%', top: '-4%', mx: '54vw', my: '52vh', dx: '108vw', dy: '108vh', srot: '130deg', mrot: '130deg', erot: '130deg', peakScale: 1.25, duration: '2.25s', delay: '0s', size: 18, shape: 'blade', colorIdx: 0 },
-      { id: 1, left: '-4%', top: '14%', mx: '54vw', my: '44vh', dx: '108vw', dy: '88vh', srot: '15deg', mrot: '135deg', erot: '255deg', peakScale: 1.15, duration: '2.45s', delay: '0.7s', size: 15, shape: 'ember', colorIdx: 2 },
-      { id: 2, left: '104%', top: '-4%', mx: '-54vw', my: '52vh', dx: '-108vw', dy: '108vh', srot: '-130deg', mrot: '-130deg', erot: '-130deg', peakScale: 1.25, duration: '2.3s', delay: '0.3s', size: 18, shape: 'blade', colorIdx: 1 },
-      { id: 3, left: '104%', top: '14%', mx: '-54vw', my: '44vh', dx: '-108vw', dy: '88vh', srot: '15deg', mrot: '-135deg', erot: '-255deg', peakScale: 1.15, duration: '2.5s', delay: '1.05s', size: 15, shape: 'ember', colorIdx: 3 },
-      { id: 4, left: '-4%', top: '104%', mx: '54vw', my: '-52vh', dx: '108vw', dy: '-108vh', srot: '50deg', mrot: '50deg', erot: '50deg', peakScale: 1.25, duration: '2.2s', delay: '0.5s', size: 18, shape: 'chevron', colorIdx: 2 },
-      { id: 5, left: '-4%', top: '86%', mx: '54vw', my: '-44vh', dx: '108vw', dy: '-88vh', srot: '35deg', mrot: '55deg', erot: '75deg', peakScale: 1.15, duration: '2.4s', delay: '1.25s', size: 16, shape: 'bolt', colorIdx: 0 },
-      { id: 6, left: '104%', top: '104%', mx: '-54vw', my: '-52vh', dx: '-108vw', dy: '-108vh', srot: '-50deg', mrot: '-50deg', erot: '-50deg', peakScale: 1.25, duration: '2.35s', delay: '0.85s', size: 18, shape: 'chevron', colorIdx: 3 },
-      { id: 7, left: '104%', top: '86%', mx: '-54vw', my: '-44vh', dx: '-108vw', dy: '-88vh', srot: '-35deg', mrot: '-55deg', erot: '-75deg', peakScale: 1.15, duration: '2.55s', delay: '0.15s', size: 16, shape: 'bolt', colorIdx: 1 },
-    ],
-    streaks: [
-      { id: 0, left: '-6%', top: '-6%', angle: '38deg', dist: '138vmax', width: 'w-24', duration: '1.65s', delay: '0.1s', colorIdx: 0 },
-      { id: 1, left: '106%', top: '-6%', angle: '142deg', dist: '138vmax', width: 'w-24', duration: '1.7s', delay: '0.45s', colorIdx: 1 },
-      { id: 2, left: '-6%', top: '106%', angle: '-38deg', dist: '138vmax', width: 'w-24', duration: '1.6s', delay: '0.8s', colorIdx: 2 },
-      { id: 3, left: '106%', top: '106%', angle: '-142deg', dist: '138vmax', width: 'w-24', duration: '1.75s', delay: '1.15s', colorIdx: 0 },
-      { id: 4, left: '10%', top: '-6%', angle: '42deg', dist: '130vmax', width: 'w-16', duration: '1.8s', delay: '0.6s', colorIdx: 1 },
-      { id: 5, left: '90%', top: '-6%', angle: '138deg', dist: '130vmax', width: 'w-16', duration: '1.85s', delay: '1.3s', colorIdx: 2 },
-    ],
+  'anvil-stamp': {
+    textEntryClass: 'anim-text-anvil-stamp',
+    textIdleClass: 'anim-idle-pulse-tilt',
+    gifEntryClass: 'anim-gif-recoil',
+    gifIdleClass: '',
+    titleGradient: 'from-yellow-300 via-orange-500 to-red-500',
+    titleGlow: 'drop-shadow-[0_0_24px_rgba(249,115,22,0.55)]',
+    gifFrameClass: 'border-orange-400/75 shadow-[0_0_42px_rgba(249,115,22,0.38)]',
+    xpCardClass: 'border-orange-400/50 bg-slate-900/85 shadow-[0_0_26px_rgba(249,115,22,0.3)]',
+    xpBadgeColor: 'text-orange-300',
+    countdownClass: 'from-yellow-400 via-orange-500 to-red-600',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(249,115,22,0.22), rgba(220,38,38,0.1) 42%, transparent 72%)',
+    particleVariant: 'radial-burst',
   },
-
-  // 6. Radial 360° Shockwave Blast expanding outward from behind center
-  'radial-burst': {
-    sparks: [
-      { id: 0, left: '50%', top: '50%', mx: '-170px', my: '-140px', dx: '-340px', dy: '-280px', srot: '-50deg', mrot: '-50deg', erot: '-50deg', peakScale: 1.25, duration: '1.85s', delay: '0s', size: 19, shape: 'blade', colorIdx: 0 },
-      { id: 1, left: '50%', top: '50%', mx: '175px', my: '-135px', dx: '350px', dy: '-270px', srot: '52deg', mrot: '52deg', erot: '52deg', peakScale: 1.25, duration: '1.95s', delay: '0.25s', size: 19, shape: 'blade', colorIdx: 1 },
-      { id: 2, left: '50%', top: '50%', mx: '-220px', my: '-10px', dx: '-430px', dy: '-25px', srot: '-95deg', mrot: '-95deg', erot: '-95deg', peakScale: 1.2, duration: '1.75s', delay: '0.5s', size: 17, shape: 'chevron', colorIdx: 2 },
-      { id: 3, left: '50%', top: '50%', mx: '220px', my: '10px', dx: '430px', dy: '25px', srot: '95deg', mrot: '95deg', erot: '95deg', peakScale: 1.2, duration: '1.8s', delay: '0.75s', size: 17, shape: 'chevron', colorIdx: 3 },
-      { id: 4, left: '50%', top: '50%', mx: '-165px', my: '145px', dx: '-330px', dy: '290px', srot: '10deg', mrot: '130deg', erot: '250deg', peakScale: 1.2, duration: '2.0s', delay: '0.35s', size: 16, shape: 'ember', colorIdx: 1 },
-      { id: 5, left: '50%', top: '50%', mx: '165px', my: '145px', dx: '330px', dy: '290px', srot: '-10deg', mrot: '-130deg', erot: '-250deg', peakScale: 1.2, duration: '1.9s', delay: '0.9s', size: 16, shape: 'ember', colorIdx: 0 },
-      { id: 6, left: '50%', top: '50%', mx: '-20px', my: '-190px', dx: '-40px', dy: '-360px', srot: '-8deg', mrot: '8deg', erot: '-5deg', peakScale: 1.25, duration: '1.7s', delay: '1.15s', size: 18, shape: 'bolt', colorIdx: 2 },
-      { id: 7, left: '50%', top: '50%', mx: '25px', my: '185px', dx: '50px', dy: '350px', srot: '170deg', mrot: '185deg', erot: '175deg', peakScale: 1.2, duration: '2.05s', delay: '0.6s', size: 18, shape: 'bolt', colorIdx: 3 },
-    ],
-    streaks: [
-      { id: 0, left: '50%', top: '50%', angle: '-150deg', dist: '420px', width: 'w-16', duration: '1.45s', delay: '0s', colorIdx: 0 },
-      { id: 1, left: '50%', top: '50%', angle: '-95deg', dist: '380px', width: 'w-14', duration: '1.55s', delay: '0.3s', colorIdx: 1 },
-      { id: 2, left: '50%', top: '50%', angle: '-32deg', dist: '420px', width: 'w-16', duration: '1.5s', delay: '0.6s', colorIdx: 2 },
-      { id: 3, left: '50%', top: '50%', angle: '22deg', dist: '430px', width: 'w-16', duration: '1.6s', delay: '0.15s', colorIdx: 0 },
-      { id: 4, left: '50%', top: '50%', angle: '86deg', dist: '370px', width: 'w-14', duration: '1.65s', delay: '0.85s', colorIdx: 1 },
-      { id: 5, left: '50%', top: '50%', angle: '148deg', dist: '420px', width: 'w-16', duration: '1.5s', delay: '0.45s', colorIdx: 2 },
-    ],
+  'valhalla-mist': {
+    textEntryClass: 'anim-text-valhalla-rise',
+    textIdleClass: 'anim-idle-levitate',
+    gifEntryClass: 'anim-gif-pendulum',
+    gifIdleClass: 'anim-idle-levitate',
+    titleGradient: 'from-violet-300 via-slate-100 to-sky-300',
+    titleGlow: 'drop-shadow-[0_0_22px_rgba(168,85,247,0.48)]',
+    gifFrameClass: 'border-violet-400/65 shadow-[0_0_38px_rgba(168,85,247,0.32),0_0_58px_rgba(56,189,248,0.22)]',
+    xpCardClass: 'border-violet-400/45 bg-slate-900/85 shadow-[0_0_24px_rgba(168,85,247,0.25)]',
+    xpBadgeColor: 'text-violet-300',
+    countdownClass: 'from-violet-400 via-slate-200 to-sky-400',
+    spotlightStyle:
+      'radial-gradient(circle at 50% 45%, rgba(168,85,247,0.18), rgba(56,189,248,0.1) 44%, transparent 74%)',
+    particleVariant: 'cinders',
   },
 };
 
-// Rank-Up Exclusive Signature: Twin War-Forge Aura Columns + Ascending Spartan Chevrons, Blades & Embers
-const RANKUP_SIGNATURE_DATA: SparkChoreography = {
-  sparks: [
-    // Left War-Aura Helical Ascension
-    { id: 0, left: '7%', top: '106%', mx: '38px', my: '-55vh', dx: '-16px', dy: '-114vh', srot: '0deg', mrot: '0deg', erot: '0deg', peakScale: 1.35, duration: '1.75s', delay: '0s', size: 20, shape: 'chevron', colorIdx: 0 },
-    { id: 1, left: '14%', top: '106%', mx: '-34px', my: '-56vh', dx: '22px', dy: '-114vh', srot: '15deg', mrot: '135deg', erot: '265deg', peakScale: 1.25, duration: '2.0s', delay: '0.45s', size: 16, shape: 'ember', colorIdx: 2 },
-    { id: 2, left: '21%', top: '106%', mx: '26px', my: '-55vh', dx: '-12px', dy: '-114vh', srot: '-10deg', mrot: '12deg', erot: '-6deg', peakScale: 1.3, duration: '1.85s', delay: '0.9s', size: 19, shape: 'bolt', colorIdx: 1 },
-    // Right War-Aura Helical Ascension
-    { id: 3, left: '93%', top: '106%', mx: '-38px', my: '-55vh', dx: '16px', dy: '-114vh', srot: '0deg', mrot: '0deg', erot: '0deg', peakScale: 1.35, duration: '1.8s', delay: '0.15s', size: 20, shape: 'chevron', colorIdx: 0 },
-    { id: 4, left: '86%', top: '106%', mx: '34px', my: '-56vh', dx: '-22px', dy: '-114vh', srot: '-15deg', mrot: '-135deg', erot: '-265deg', peakScale: 1.25, duration: '2.05s', delay: '0.6s', size: 16, shape: 'ember', colorIdx: 3 },
-    { id: 5, left: '79%', top: '106%', mx: '-26px', my: '-55vh', dx: '12px', dy: '-114vh', srot: '10deg', mrot: '-12deg', erot: '6deg', peakScale: 1.3, duration: '1.9s', delay: '1.05s', size: 19, shape: 'bolt', colorIdx: 1 },
-    // Center-Flank Spear Blades
-    { id: 6, left: '34%', top: '106%', mx: '-22px', my: '-56vh', dx: '14px', dy: '-114vh', srot: '-6deg', mrot: '6deg', erot: '0deg', peakScale: 1.25, duration: '1.7s', delay: '0.3s', size: 18, shape: 'blade', colorIdx: 0 },
-    { id: 7, left: '66%', top: '106%', mx: '22px', my: '-56vh', dx: '-14px', dy: '-114vh', srot: '6deg', mrot: '-6deg', erot: '0deg', peakScale: 1.25, duration: '1.7s', delay: '0.8s', size: 18, shape: 'blade', colorIdx: 2 },
-    // Horizontal Crimson-Gold Clash Across Rank Crest
-    { id: 8, left: '-4%', top: '20%', mx: '54vw', my: '-10px', dx: '108vw', dy: '-20px', srot: '90deg', mrot: '90deg', erot: '90deg', peakScale: 1.2, duration: '1.75s', delay: '0.5s', size: 17, shape: 'blade', colorIdx: 0 },
-    { id: 9, left: '104%', top: '24%', mx: '-54vw', my: '-10px', dx: '-108vw', dy: '-20px', srot: '-90deg', mrot: '-90deg', erot: '-90deg', peakScale: 1.2, duration: '1.8s', delay: '1.15s', size: 17, shape: 'blade', colorIdx: 1 },
-  ],
-  streaks: [
-    { id: 0, left: '6%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-24', duration: '1.2s', delay: '0s', colorIdx: 0 },
-    { id: 1, left: '13%', top: '108%', angle: '-87deg', dist: '118vh', width: 'w-20', duration: '1.35s', delay: '0.4s', colorIdx: 1 },
-    { id: 2, left: '21%', top: '108%', angle: '-92deg', dist: '118vh', width: 'w-16', duration: '1.3s', delay: '0.8s', colorIdx: 2 },
-    { id: 3, left: '94%', top: '108%', angle: '-90deg', dist: '118vh', width: 'w-24', duration: '1.25s', delay: '0.2s', colorIdx: 0 },
-    { id: 4, left: '87%', top: '108%', angle: '-93deg', dist: '118vh', width: 'w-20', duration: '1.4s', delay: '0.6s', colorIdx: 1 },
-    { id: 5, left: '79%', top: '108%', angle: '-88deg', dist: '118vh', width: 'w-16', duration: '1.3s', delay: '1.0s', colorIdx: 2 },
-    { id: 6, left: '-6%', top: '104%', angle: '-36deg', dist: '135vmax', width: 'w-24', duration: '1.5s', delay: '0.35s', colorIdx: 0 },
-    { id: 7, left: '106%', top: '104%', angle: '-144deg', dist: '135vmax', width: 'w-24', duration: '1.55s', delay: '0.75s', colorIdx: 1 },
-  ],
-};
+// 16 deterministic ember drift points (negative delays so embers are already moving on frame 0)
+const EMBER_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  left: `${6 + ((i * 6.1) % 88)}%`,
+  top: `${24 + ((i * 13) % 68)}%`,
+  x1: `${(i % 2 === 0 ? 1 : -1) * (14 + (i % 4) * 6)}px`,
+  y1: `${-20 - (i % 3) * 10}px`,
+  x2: `${(i % 2 === 0 ? -1 : 1) * (16 + (i % 5) * 5)}px`,
+  y2: `${-46 - (i % 4) * 10}px`,
+  x3: `${(i % 2 === 0 ? 1 : -1) * (10 + (i % 3) * 8)}px`,
+  y3: `${-78 - (i % 3) * 14}px`,
+  duration: `${2.2 + (i % 5) * 0.35}s`,
+  delay: `${-((i % 6) * 0.34)}s`,
+  color:
+    i % 3 === 0
+      ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.95)]'
+      : i % 3 === 1
+        ? 'bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.9)]'
+        : 'bg-yellow-200 shadow-[0_0_10px_rgba(254,240,138,0.9)]',
+}));
 
-// Grounded War-Forge & Testosterone-Boost Palettes (Crimson, Molten Amber, Gunmetal Steel)
-const RANKUP_SPARK_COLORS = ['text-amber-600', 'text-red-700', 'text-slate-900', 'text-orange-600'];
-const NORMAL_SPARK_COLORS = ['text-red-700', 'text-amber-600', 'text-slate-800', 'text-orange-700'];
-
-const RANKUP_STREAK_GRADIENTS = [
-  'bg-gradient-to-r from-transparent via-amber-500/90 to-red-600',
-  'bg-gradient-to-r from-transparent via-slate-700/80 to-amber-500',
-  'bg-gradient-to-r from-transparent via-red-600/85 to-amber-400',
-];
-const NORMAL_STREAK_GRADIENTS = [
-  'bg-gradient-to-r from-transparent via-red-600/85 to-orange-500',
-  'bg-gradient-to-r from-transparent via-slate-600/80 to-slate-900',
-  'bg-gradient-to-r from-transparent via-amber-600/85 to-red-700',
-];
-
-const renderSparkShape = (shape: SparkShape, size: number) => {
-  switch (shape) {
-    case 'blade':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="drop-shadow-[0_0_4px_currentColor]"
-        >
-          <path d="M12 1L16.5 13L12 23L7.5 13L12 1Z" />
-        </svg>
-      );
-    case 'bolt':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="drop-shadow-[0_0_5px_currentColor]"
-        >
-          <path d="M14 1L4 13.5H11L9.5 23L20 10H13L14 1Z" />
-        </svg>
-      );
-    case 'chevron':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="drop-shadow-[0_0_4px_currentColor]"
-        >
-          <path d="M12 3L21 12.5L17.5 16L12 10.5L6.5 16L3 12.5L12 3ZM12 12L19 19L16 21.5L12 17.5L8 21.5L5 19L12 12Z" />
-        </svg>
-      );
-    case 'ember':
-    default:
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="drop-shadow-[0_0_4px_currentColor]"
-        >
-          <path d="M13.5 1.5L18.5 7.5L16 14.5L20 18.5L11 22.5L6.5 16L3.5 11.5L8.5 5.5L13.5 1.5Z" />
-        </svg>
-      );
-  }
-};
-
-const EnergySparksLayer: React.FC<{
-  variant: 'rankup' | 'normal';
-  normalPreset?: NormalSparkPreset;
-}> = React.memo(({ variant, normalPreset = 'ceiling-cascade' }) => {
-  const isRankUp = variant === 'rankup';
-  const choreography = isRankUp ? RANKUP_SIGNATURE_DATA : NORMAL_PRESET_DATA[normalPreset];
-  const sparkColors = isRankUp ? RANKUP_SPARK_COLORS : NORMAL_SPARK_COLORS;
-  const streakGradients = isRankUp ? RANKUP_STREAK_GRADIENTS : NORMAL_STREAK_GRADIENTS;
-
-  return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden z-[5]"
-      aria-hidden="true"
-    >
-      {/* Signature Rank-Up Rising Forge-Aura Columns */}
-      {isRankUp && (
-        <>
-          <div className="absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-amber-500/25 via-red-500/10 to-transparent animate-rankup-pillar" />
-          <div
-            className="absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-red-600/20 via-amber-500/10 to-transparent animate-rankup-pillar"
-            style={{ animationDelay: '1.1s' }}
-          />
-        </>
-      )}
-
-      {/* Tapered Ballistic/Slash Energy Streaks for Selected Preset */}
-      {choreography.streaks.map((streak) => (
-        <span
-          key={`streak-${streak.id}`}
-          className={`block absolute h-[3px] animate-energy-streak ${streak.width} ${
-            streakGradients[streak.colorIdx % streakGradients.length]
-          }`}
-          style={
-            {
-              left: streak.left,
-              top: streak.top,
-              clipPath: 'polygon(0% 50%, 82% 0%, 100% 50%, 82% 100%)',
-              '--angle': streak.angle,
-              '--dist': streak.dist,
-              animationDuration: streak.duration,
-              animationDelay: streak.delay,
-            } as React.CSSProperties
-          }
-        />
-      ))}
-
-      {/* Combat-Forged Ember, Blade, Bolt & Chevron Sparks for Selected Preset */}
-      {choreography.sparks.map((spark) => {
-        const colorClass = sparkColors[spark.colorIdx % sparkColors.length];
-        return (
-          <div
-            key={`spark-${spark.id}`}
-            className={`absolute animate-energy-spark ${colorClass}`}
-            style={
-              {
-                left: spark.left,
-                top: spark.top,
-                '--mx': spark.mx,
-                '--my': spark.my,
-                '--dx': spark.dx,
-                '--dy': spark.dy,
-                '--srot': spark.srot,
-                '--mrot': spark.mrot,
-                '--erot': spark.erot,
-                '--peak-scale': spark.peakScale,
-                animationDuration: spark.duration,
-                animationDelay: spark.delay,
-              } as React.CSSProperties
-            }
-          >
-            {renderSparkShape(spark.shape, spark.size)}
-          </div>
-        );
-      })}
-    </div>
-  );
+// 16 tactical HUD glitch bars
+const HUD_BAR_PARTICLES = Array.from({ length: 16 }, (_, i) => {
+  const reverse = i % 2 === 1;
+  return {
+    id: i,
+    top: `${6 + ((i * 5.8) % 88)}%`,
+    width: `${28 + (i % 4) * 18}px`,
+    gx0: reverse ? '106vw' : '-14vw',
+    gx1: reverse ? '68vw' : '22vw',
+    gx2: reverse ? '28vw' : '64vw',
+    gx3: reverse ? '-18vw' : '108vw',
+    duration: `${1.1 + (i % 5) * 0.12}s`,
+    delay: `${-((i % 6) * 0.18)}s`,
+    color:
+      i % 3 === 0
+        ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.9)]'
+        : i % 3 === 1
+          ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]'
+          : 'bg-slate-100 shadow-[0_0_8px_rgba(241,245,249,0.85)]',
+  };
 });
 
-EnergySparksLayer.displayName = 'EnergySparksLayer';
+// 16 diamond steel glints
+const DIAMOND_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  left: `${7 + ((i * 6) % 86)}%`,
+  top: `${8 + ((i * 11.5) % 84)}%`,
+  duration: `${1.5 + (i % 5) * 0.28}s`,
+  delay: `${-((i % 7) * 0.22)}s`,
+  color:
+    i % 3 === 0
+      ? 'bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.9)]'
+      : i % 3 === 1
+        ? 'bg-slate-100 shadow-[0_0_12px_rgba(241,245,249,0.9)]'
+        : 'bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.85)]',
+}));
+
+// 16 diagonal speed slashes (-18deg bottom-left to top-right)
+const SLASH_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  left: `${-14 + (i % 4) * 8}%`,
+  top: `${16 + ((i * 5.2) % 76)}%`,
+  width: `${56 + (i % 4) * 24}px`,
+  duration: `${1.05 + (i % 4) * 0.14}s`,
+  delay: `${-((i % 6) * 0.17)}s`,
+  color:
+    i % 3 === 0
+      ? 'bg-gradient-to-r from-transparent via-red-500 to-amber-300'
+      : i % 3 === 1
+        ? 'bg-gradient-to-r from-transparent via-amber-400 to-white'
+        : 'bg-gradient-to-r from-transparent via-orange-500 to-red-400',
+}));
+
+// 16 radial shrapnel sparks from center (50%, 50%) — tight burst stagger (first wave immediate)
+const BURST_PARTICLES = Array.from({ length: 16 }, (_, i) => {
+  const angleRad = (i / 16) * Math.PI * 2 + (i % 2 === 0 ? 0.08 : -0.06);
+  const dist = 210 + (i % 3) * 85;
+  return {
+    id: i,
+    bx: `${Math.round(Math.cos(angleRad) * dist)}px`,
+    by: `${Math.round(Math.sin(angleRad) * dist)}px`,
+    duration: `${1.25 + (i % 4) * 0.18}s`,
+    delay: `${i < 8 ? 0 : -(0.45 + (i % 4) * 0.12)}s`,
+    color:
+      i % 3 === 0
+        ? 'bg-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.95)]'
+        : i % 3 === 1
+          ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.95)]'
+          : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)]',
+  };
+});
+
+// 16 falling cinders from top with sinusoidal sway
+const CINDER_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  left: `${5 + ((i * 6.2) % 90)}%`,
+  sway: `${(i % 2 === 0 ? 1 : -1) * (18 + (i % 4) * 8)}px`,
+  duration: `${2.8 + (i % 5) * 0.22}s`,
+  delay: `${-((i % 6) * 0.45)}s`,
+  color:
+    i % 3 === 0
+      ? 'bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.9)]'
+      : i % 3 === 1
+        ? 'bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.9)]'
+        : 'bg-slate-200 shadow-[0_0_10px_rgba(226,232,240,0.85)]',
+}));
+
+// 24 ascending sparks for Level-Up / Rank-Up (instant wave + mid-flight negative phase)
+const RANKUP_ASCENDING_SPARKS = Array.from({ length: 24 }, (_, i) => ({
+  id: i,
+  left: `${3 + ((i * 4.1) % 94)}%`,
+  width: `${4 + (i % 3)}px`,
+  height: `${12 + (i % 4) * 2}px`,
+  drift: `${(i % 2 === 0 ? 1 : -1) * (12 + (i % 5) * 7)}px`,
+  duration: `${1.55 + (i % 6) * 0.18}s`,
+  delay: `${-((i % 8) * 0.22)}s`,
+  color:
+    i % 4 === 0
+      ? 'bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.95)]'
+      : i % 4 === 1
+        ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.95)]'
+        : i % 4 === 2
+          ? 'bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.9)]'
+          : 'bg-slate-100 shadow-[0_0_10px_rgba(248,250,252,0.9)]',
+}));
+
+const NormalParticlesLayer: React.FC<{ variant: ParticleVariant }> = React.memo(({ variant }) => {
+  switch (variant) {
+    case 'embers':
+      return (
+        <>
+          {EMBER_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute w-2 h-2 rounded-full anim-p-ember ${p.color}`}
+              style={
+                {
+                  left: p.left,
+                  top: p.top,
+                  '--x1': p.x1,
+                  '--y1': p.y1,
+                  '--x2': p.x2,
+                  '--y2': p.y2,
+                  '--x3': p.x3,
+                  '--y3': p.y3,
+                  animationDuration: p.duration,
+                  animationDelay: p.delay,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </>
+      );
+    case 'hud-bars':
+      return (
+        <>
+          {HUD_BAR_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute left-0 h-[3px] rounded-full anim-p-glitch ${p.color}`}
+              style={
+                {
+                  top: p.top,
+                  width: p.width,
+                  '--gx0': p.gx0,
+                  '--gx1': p.gx1,
+                  '--gx2': p.gx2,
+                  '--gx3': p.gx3,
+                  animationDuration: p.duration,
+                  animationDelay: p.delay,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </>
+      );
+    case 'diamonds':
+      return (
+        <>
+          {DIAMOND_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute w-2.5 h-2.5 rounded-[2px] anim-p-diamond ${p.color}`}
+              style={{
+                left: p.left,
+                top: p.top,
+                animationDuration: p.duration,
+                animationDelay: p.delay,
+              }}
+            />
+          ))}
+        </>
+      );
+    case 'slashes':
+      return (
+        <>
+          {SLASH_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute h-[3px] rounded-full anim-p-slash ${p.color}`}
+              style={{
+                left: p.left,
+                top: p.top,
+                width: p.width,
+                animationDuration: p.duration,
+                animationDelay: p.delay,
+              }}
+            />
+          ))}
+        </>
+      );
+    case 'radial-burst':
+      return (
+        <>
+          {BURST_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute left-1/2 top-1/2 w-2.5 h-2.5 rounded-sm anim-p-burst ${p.color}`}
+              style={
+                {
+                  '--bx': p.bx,
+                  '--by': p.by,
+                  animationDuration: p.duration,
+                  animationDelay: p.delay,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </>
+      );
+    case 'cinders':
+    default:
+      return (
+        <>
+          {CINDER_PARTICLES.map((p) => (
+            <span
+              key={p.id}
+              className={`block absolute -top-5 w-2 h-2.5 rounded-sm anim-p-cinder ${p.color}`}
+              style={
+                {
+                  left: p.left,
+                  '--sway': p.sway,
+                  animationDuration: p.duration,
+                  animationDelay: p.delay,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </>
+      );
+  }
+});
+
+NormalParticlesLayer.displayName = 'NormalParticlesLayer';
 
 const RewardOverlay: React.FC<RewardOverlayProps> = React.memo(
-  ({ gifUrl, quote, xp, rankIndex, rewardDurationMs, onClose }) => {
+  ({ gifUrl, quote, xp, totalXp, rankIndex, rewardDurationMs, showTimerBar = false, onClose }) => {
     const isRankUp = rankIndex !== undefined;
     const rankDef = isRankUp ? RANKS[rankIndex] : null;
     const [crestImgFailed, setCrestImgFailed] = useState(false);
-    const [normalSparkPreset] = useState<NormalSparkPreset>(() =>
-      isRankUp ? 'ceiling-cascade' : popNextNormalSparkPreset()
+    const [activePreset] = useState<NormalRewardPresetId>(() =>
+      isRankUp ? 'titan-surge' : popNextRewardPreset()
     );
 
     useEffect(() => {
       setCrestImgFailed(false);
     }, [rankDef?.img]);
 
+    const animInstanceKey = `${isRankUp ? `rank-${rankIndex}` : activePreset}-${gifUrl}-${xp}`;
+
     if (isRankUp && rankDef) {
       return (
         <div
-          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gradient-to-br from-stone-50/95 via-amber-50/85 to-slate-100/95 backdrop-blur-md p-4 overflow-hidden animate-rankup-backdrop"
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/90 p-4 overflow-hidden anim-reward-backdrop"
           role="dialog"
           aria-modal="true"
           aria-label="Rank up reward notification"
         >
-          {/* War-Forge Sunburst Rays & Expanding Impact Rings */}
+          {/* Golden-Crimson Forge Radial Aura */}
           <div
             className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
             aria-hidden="true"
           >
-            <div className="absolute -top-24 -left-24 w-[440px] h-[440px] rounded-full bg-amber-300/35 blur-3xl animate-normal-orb" />
-            <div className="absolute -bottom-24 -right-24 w-[460px] h-[460px] rounded-full bg-red-300/25 blur-3xl animate-normal-orb-alt" />
             <div
-              className="w-[760px] h-[760px] rounded-full opacity-55 animate-rankup-sunburst"
+              className="absolute inset-0"
               style={{
                 background:
-                  'conic-gradient(from 0deg, rgba(217,119,6,0.22) 0deg 15deg, transparent 15deg 45deg, rgba(220,38,38,0.14) 45deg 60deg, transparent 60deg 90deg, rgba(217,119,6,0.22) 90deg 105deg, transparent 105deg 135deg, rgba(51,65,85,0.12) 135deg 150deg, transparent 150deg 180deg, rgba(217,119,6,0.22) 180deg 195deg, transparent 195deg 225deg, rgba(220,38,38,0.14) 225deg 240deg, transparent 240deg 270deg, rgba(217,119,6,0.22) 270deg 285deg, transparent 285deg 315deg, rgba(51,65,85,0.12) 315deg 330deg, transparent 330deg 360deg)',
-                maskImage: 'radial-gradient(circle, rgba(0,0,0,0.9) 15%, transparent 68%)',
-                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,0.9) 15%, transparent 68%)',
+                  'radial-gradient(circle at 50% 48%, rgba(245,158,11,0.24), rgba(185,28,28,0.16) 38%, transparent 72%)',
               }}
             />
-            <div className="absolute w-72 h-72 rounded-full border-2 border-amber-500/55 animate-rankup-ring" />
-            <div className="absolute w-72 h-72 rounded-full border-2 border-red-600/40 animate-rankup-ring-delayed" />
+            <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full border-2 border-amber-400/60 anim-rank-shockwave" />
+            <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full border-2 border-red-500/45 anim-rank-shockwave-delayed" />
           </div>
 
-          {/* Rank-Up Signature Energy Sparks */}
-          <EnergySparksLayer variant="rankup" />
-
-          {/* Prestige Showcase Header */}
-          <div className="mb-5 sm:mb-7 text-center z-10 relative max-w-2xl w-full px-2 flex flex-col items-center">
-            {/* Shrapnel Sparks + New Rank Crest Portrait */}
-            <div className="relative mb-3 flex items-center justify-center">
-              <div
-                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                aria-hidden="true"
-              >
-                {RANKUP_SPARKS.map((spark) => (
-                  <span
-                    key={spark.id}
-                    className={`block absolute animate-victory-confetti ${spark.color} ${spark.size}`}
-                    style={
-                      {
-                        clipPath: 'polygon(50% 0%, 100% 45%, 65% 100%, 0% 60%)',
-                        '--tx': spark.tx,
-                        '--ty': spark.ty,
-                        '--rot': spark.rot,
-                        animationDelay: spark.delay,
-                      } as React.CSSProperties
-                    }
-                  />
-                ))}
-              </div>
-
-              <div className="relative animate-rankup-crest">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white p-1 border-2 border-amber-500 shadow-[0_10px_28px_rgba(180,83,9,0.28)] flex items-center justify-center">
-                  <div className="w-full h-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                    {!crestImgFailed ? (
-                      <img
-                        src={rankDef.img}
-                        alt={rankDef.name}
-                        referrerPolicy="no-referrer"
-                        onError={() => setCrestImgFailed(true)}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Crown size={28} className="text-amber-600" />
-                    )}
-                  </div>
-                </div>
-                <div
-                  className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-amber-500 text-slate-950 border-2 border-white shadow-md flex items-center justify-center animate-victory-trophy"
-                  aria-hidden="true"
-                >
-                  <Crown size={15} strokeWidth={2.5} />
-                </div>
-              </div>
-            </div>
-
-            {/* Ascending XP Callout */}
-            <div className="animate-normal-xp-float mb-2.5 sm:mb-3">
-              <div className="animate-rankup-xp inline-flex items-center justify-center">
-                {xp > 0 ? (
-                  <span className="text-5xl sm:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-red-600 to-slate-900 animate-rankup-gradient drop-shadow-[0_6px_18px_rgba(185,28,28,0.2)] tabular-nums">
-                    +{xp} XP
-                  </span>
-                ) : (
-                  <span className="text-4xl sm:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-red-600 to-slate-900 animate-rankup-gradient drop-shadow-[0_6px_18px_rgba(185,28,28,0.2)]">
-                    BOARD COMPLETE
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Forged Stone & Gold Rank Banner */}
-            <div className="animate-rankup-banner">
-              <div className="relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-r from-white via-amber-50/85 to-white border border-amber-400/85 px-6 py-3 shadow-[0_14px_38px_rgba(180,83,9,0.16),0_4px_14px_rgba(15,23,42,0.08)]">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-50"
-                  aria-hidden="true"
-                >
-                  <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-amber-200/50 to-transparent animate-victory-shimmer" />
-                </div>
-
-                <div className="relative z-10 flex items-center gap-2.5 text-lg sm:text-2xl font-black uppercase tracking-wide text-slate-900">
-                  <span className="text-slate-600">NEW RANK:</span>
-                  <span className={`${rankDef.color} drop-shadow-[0_1px_1px_rgba(15,23,42,0.18)]`}>
-                    {rankDef.name}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {/* Layer 1: 24 Ascending Energy Sparks */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden z-[1]" aria-hidden="true">
+            {RANKUP_ASCENDING_SPARKS.map((spark) => (
+              <span
+                key={spark.id}
+                className={`block absolute -bottom-[4vh] rounded-full anim-rank-spark ${spark.color}`}
+                style={
+                  {
+                    left: spark.left,
+                    width: spark.width,
+                    height: spark.height,
+                    '--spark-drift': spark.drift,
+                    animationDuration: spark.duration,
+                    animationDelay: spark.delay,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
           </div>
 
-          {/* Framed Prestige GIF Stage */}
-          <div className="relative z-10 w-auto max-w-5xl max-h-[56vh] rounded-3xl bg-white p-1.5 sm:p-2 border-2 border-amber-400/85 shadow-[0_24px_60px_rgba(180,83,9,0.18),0_10px_28px_rgba(15,23,42,0.12)] animate-rankup-media">
-            <div className="relative w-full h-full rounded-2xl overflow-hidden bg-slate-100">
-              <div className="relative w-full h-full flex justify-center items-center">
-                {gifUrl && (
-                  <img
-                    src={gifUrl}
-                    alt="Rank Up Reward"
-                    referrerPolicy="no-referrer"
-                    className="w-auto h-auto max-h-[50vh] object-contain"
-                  />
-                )}
-              </div>
-
-              <div className="w-full h-1.5 bg-slate-200 overflow-hidden" aria-hidden="true">
-                <div
-                  className="h-full animate-reward-countdown bg-gradient-to-r from-amber-500 via-red-600 to-slate-800"
-                  style={{ animationDuration: `${rewardDurationMs}ms` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Skip Button */}
-          <button
-            onClick={onClose}
-            className="relative z-10 mt-5 sm:mt-7 min-h-[44px] px-6 py-2.5 rounded-xl bg-white hover:bg-amber-50 text-slate-800 hover:text-slate-950 font-bold uppercase tracking-widest text-xs sm:text-sm border border-amber-400/90 shadow-sm transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap animate-rankup-btn"
+          {/* Layer 2: Rank Crest + Impact Title */}
+          <div
+            key={`rank-title-${animInstanceKey}`}
+            className="relative z-10 text-center max-w-3xl w-full px-2 mb-4 sm:mb-6 flex flex-col items-center anim-rank-text-entry"
           >
-            <span>Skip Reward</span>
-            <FastForward size={15} />
-          </button>
-        </div>
-      );
-    }
+            <div className="anim-rank-text-idle flex flex-col items-center">
+              <div className="relative mb-2.5 flex items-center justify-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-slate-900 p-0.5 border-2 border-amber-400 shadow-[0_0_28px_rgba(245,158,11,0.5)] flex items-center justify-center">
+                  {!crestImgFailed ? (
+                    <img
+                      src={rankDef.img}
+                      alt={rankDef.name}
+                      referrerPolicy="no-referrer"
+                      onError={() => setCrestImgFailed(true)}
+                      className="w-full h-full rounded-xl object-cover"
+                    />
+                  ) : (
+                    <Crown size={26} className="text-amber-400" />
+                  )}
+                </div>
+                <div
+                  className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-amber-400 text-slate-950 border-2 border-slate-950 shadow-md flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Crown size={14} strokeWidth={2.6} />
+                </div>
+              </div>
 
-    // Normal Reward: Steel, Crimson & Forge-Ember Aesthetic with Shuffled Directional Sparks
-    return (
-      <div
-        className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gradient-to-br from-slate-100/95 via-stone-100/95 to-zinc-200/95 backdrop-blur-md p-4 overflow-hidden animate-normal-backdrop"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Reward notification"
-      >
-        {/* Subtle Iron & Forge Ember Atmospheric Washes */}
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          aria-hidden="true"
-        >
-          <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-slate-300/45 blur-3xl animate-normal-orb" />
-          <div className="absolute -bottom-24 -right-20 w-[440px] h-[440px] rounded-full bg-red-200/35 blur-3xl animate-normal-orb-alt" />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-amber-200/35 blur-3xl animate-normal-orb" />
-        </div>
+              <span className="text-xs sm:text-sm font-black uppercase tracking-[0.28em] text-amber-300 mb-1">
+                RANK ASCENSION
+              </span>
+              <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-red-400 leading-none">
+                {rankDef.name}
+              </h2>
+            </div>
+          </div>
 
-        {/* Shuffled War-Forge Energy Sparks Animation Version */}
-        <EnergySparksLayer variant="normal" normalPreset={normalSparkPreset} />
-
-        {/* Text Showcase */}
-        <div className="mb-6 sm:mb-8 text-center z-10 relative max-w-2xl w-full px-2">
-          <div className="animate-normal-xp-float mb-3 sm:mb-4">
-            <div className="animate-normal-xp-bounce inline-flex items-center justify-center">
-              {xp > 0 ? (
-                <span className="text-6xl sm:text-8xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-red-700 to-amber-600 drop-shadow-[0_6px_18px_rgba(185,28,28,0.2)] tabular-nums">
-                  +{xp} XP
-                </span>
-              ) : (
-                <span className="text-5xl sm:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-red-700 to-amber-600 drop-shadow-[0_6px_18px_rgba(185,28,28,0.2)]">
-                  BOARD COMPLETE
-                </span>
+          {/* Layer 3: Heroic 3D GIF Stage */}
+          <div
+            key={`rank-gif-${animInstanceKey}`}
+            className="relative z-10 anim-rank-gif-entry"
+          >
+            <div className="rounded-xl overflow-hidden border-2 border-amber-400/80 bg-slate-950 anim-rank-gif-pulse">
+              {gifUrl && (
+                <img
+                  src={gifUrl}
+                  alt="Rank Up Reward"
+                  referrerPolicy="no-referrer"
+                  className="block max-w-[85vw] max-h-[48vh] w-auto h-auto object-contain"
+                />
+              )}
+              {showTimerBar && (
+                <div className="w-full h-1.5 bg-slate-800 overflow-hidden" aria-hidden="true">
+                  <div
+                    className="h-full animate-reward-countdown bg-gradient-to-r from-amber-400 via-red-500 to-amber-300"
+                    style={{ animationDuration: `${rewardDurationMs}ms` }}
+                  />
+                </div>
               )}
             </div>
           </div>
 
-          {/* Crisp Steel-Trimmed Quote Card */}
-          <div className="animate-normal-quote">
-            <div className="relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-white/95 border border-slate-300/90 px-6 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.1)]">
-              <div className="relative z-10 flex items-center gap-2.5 text-lg sm:text-2xl font-extrabold uppercase tracking-wide text-slate-900">
-                <Flame size={20} className="text-red-600 shrink-0" />
-                <span>{quote}</span>
+          {/* Layer 4: XP Summary Card + Skip */}
+          <div
+            key={`rank-xp-${animInstanceKey}`}
+            className="relative z-10 mt-4 sm:mt-6 flex flex-col items-center gap-3.5"
+          >
+            <div className="anim-rank-text-entry">
+              <div className="anim-rank-text-idle inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-slate-900/90 border border-amber-400/55 shadow-[0_0_24px_rgba(245,158,11,0.3)] text-sm sm:text-base font-extrabold tracking-wide text-slate-100 tabular-nums">
+                <span className="text-amber-300">
+                  {xp > 0 ? `+${xp} XP` : 'BOARD COMPLETE'}
+                </span>
+                {totalXp !== undefined && (
+                  <>
+                    <span className="text-slate-500">|</span>
+                    <span className="text-slate-200">
+                      Total: {totalXp.toLocaleString()} XP
+                    </span>
+                  </>
+                )}
               </div>
             </div>
+
+            <button
+              onClick={onClose}
+              className="pointer-events-auto min-h-[44px] px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold uppercase tracking-widest text-xs sm:text-sm border border-amber-400/40 backdrop-blur-sm transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap anim-rank-btn"
+            >
+              <span>Skip Reward</span>
+              <FastForward size={15} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const theme = PRESET_THEMES[activePreset];
+
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-slate-950/90 p-4 overflow-hidden anim-reward-backdrop"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Reward notification"
+      >
+        {/* Preset Atmospheric Spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: theme.spotlightStyle }}
+          aria-hidden="true"
+        />
+
+        {/* Layer 1: 16 Synchronized Theme Particles */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden z-[1]" aria-hidden="true">
+          <NormalParticlesLayer variant={theme.particleVariant} />
+        </div>
+
+        {/* Layer 2: Upper Motivational Title (Entry + Continuous Preset Loop) */}
+        <div
+          key={`normal-title-${animInstanceKey}`}
+          className={`relative z-10 text-center max-w-3xl w-full px-3 mb-4 sm:mb-6 ${theme.textEntryClass}`}
+        >
+          <div className={theme.textIdleClass}>
+            <h2
+              className={`text-3xl sm:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${theme.titleGradient} ${theme.titleGlow} leading-tight`}
+            >
+              {quote}
+            </h2>
           </div>
         </div>
 
-        {/* Clean Steel-Framed GIF Card */}
-        <div className="relative z-10 w-auto max-w-5xl max-h-[62vh] rounded-3xl bg-white p-1.5 sm:p-2 border border-slate-300/90 shadow-[0_22px_55px_rgba(15,23,42,0.16)] animate-normal-media">
-          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-slate-100">
-            <div className="relative w-full h-full flex justify-center items-center">
+        {/* Layer 3: Central GIF Stage */}
+        <div
+          key={`normal-gif-${animInstanceKey}`}
+          className={`relative z-10 ${theme.gifEntryClass}`}
+        >
+          <div className={theme.gifIdleClass}>
+            <div className={`rounded-xl overflow-hidden border-2 bg-slate-950 ${theme.gifFrameClass}`}>
               {gifUrl && (
                 <img
                   src={gifUrl}
                   alt="Reward"
                   referrerPolicy="no-referrer"
-                  className="w-auto h-auto max-h-[58vh] object-contain"
+                  className="block max-w-[85vw] max-h-[50vh] w-auto h-auto object-contain"
                 />
               )}
-            </div>
-
-            {/* Auto-close Progress Bar */}
-            <div className="w-full h-1.5 bg-slate-200 overflow-hidden" aria-hidden="true">
-              <div
-                className="h-full animate-reward-countdown bg-gradient-to-r from-slate-800 via-red-600 to-amber-500"
-                style={{ animationDuration: `${rewardDurationMs}ms` }}
-              />
+              {showTimerBar && (
+                <div className="w-full h-1.5 bg-slate-800 overflow-hidden" aria-hidden="true">
+                  <div
+                    className={`h-full animate-reward-countdown bg-gradient-to-r ${theme.countdownClass}`}
+                    style={{ animationDuration: `${rewardDurationMs}ms` }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Skip Button */}
-        <button
-          onClick={onClose}
-          className="relative z-10 mt-6 sm:mt-8 min-h-[44px] px-6 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 hover:text-slate-950 font-bold uppercase tracking-widest text-xs sm:text-sm border border-slate-300 shadow-sm transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap animate-normal-btn"
+        {/* Layer 4: Lower XP Card (Shares Active Preset Text Choreography) + Skip */}
+        <div
+          key={`normal-xp-${animInstanceKey}`}
+          className="relative z-10 mt-4 sm:mt-6 flex flex-col items-center gap-3.5"
         >
-          <span>Skip Reward</span>
-          <FastForward size={15} />
-        </button>
+          <div className={theme.textEntryClass}>
+            <div className={theme.textIdleClass}>
+              <div
+                className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl border backdrop-blur-sm text-sm sm:text-base font-extrabold tracking-wide text-slate-100 tabular-nums ${theme.xpCardClass}`}
+              >
+                <Flame size={17} className={`${theme.xpBadgeColor} shrink-0`} />
+                <span className={theme.xpBadgeColor}>
+                  {xp > 0 ? `+${xp} XP` : 'BOARD COMPLETE'}
+                </span>
+                {totalXp !== undefined && (
+                  <>
+                    <span className="text-slate-500">|</span>
+                    <span className="text-slate-200">
+                      Total: {totalXp.toLocaleString()} XP
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="pointer-events-auto min-h-[44px] px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold uppercase tracking-widest text-xs sm:text-sm border border-white/20 backdrop-blur-sm transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap anim-rank-btn"
+          >
+            <span>Skip Reward</span>
+            <FastForward size={15} />
+          </button>
+        </div>
       </div>
     );
   }

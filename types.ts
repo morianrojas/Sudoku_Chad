@@ -58,4 +58,5 @@ export interface AppSettings {
   enableVisualRewards: boolean;
   enableRewardSounds: boolean;
   showActivityLog: boolean;
+  showRewardTimerBar: boolean;
 }

@@ -114,117 +114,9 @@
       .animate-victory-shimmer {
         animation: victory-shimmer 2.8s ease-in-out infinite;
       }
-      @keyframes rankup-backdrop-in {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-      }
-      @keyframes rankup-sunburst-spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      @keyframes rankup-ring-expand {
-        0% { opacity: 0.72; transform: scale(0.35); }
-        100% { opacity: 0; transform: scale(2.15); }
-      }
-      @keyframes rankup-crest-reveal {
-        0% {
-          opacity: 0;
-          transform: perspective(900px) rotateY(-32deg) translateY(20px) scale(0.72);
-        }
-        62% {
-          opacity: 1;
-          transform: perspective(900px) rotateY(7deg) translateY(-4px) scale(1.05);
-        }
-        100% {
-          opacity: 1;
-          transform: perspective(900px) rotateY(0deg) translateY(0) scale(1);
-        }
-      }
-      @keyframes rankup-xp-ascend {
-        0% {
-          opacity: 0;
-          transform: translateY(24px) scale(0.76);
-        }
-        60% {
-          opacity: 1;
-          transform: translateY(-5px) scale(1.06);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-      @keyframes rankup-gradient-flow {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      @keyframes rankup-banner-reveal {
-        0% {
-          opacity: 0;
-          transform: translateY(14px) scale(0.86);
-        }
-        65% {
-          opacity: 1;
-          transform: translateY(-2px) scale(1.02);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-      @keyframes rankup-media-showcase {
-        0% {
-          opacity: 0;
-          transform: perspective(1000px) rotateX(9deg) translateY(24px) scale(0.9);
-        }
-        68% {
-          opacity: 1;
-          transform: perspective(1000px) rotateX(-1.5deg) translateY(-3px) scale(1.01);
-        }
-        100% {
-          opacity: 1;
-          transform: perspective(1000px) rotateX(0deg) translateY(0) scale(1);
-        }
-      }
-      @keyframes rankup-btn-rise {
-        0% { opacity: 0; transform: translateY(14px); }
-        100% { opacity: 1; transform: translateY(0); }
-      }
       @keyframes reward-countdown-shrink {
         0% { transform: scaleX(1); }
         100% { transform: scaleX(0); }
-      }
-      .animate-rankup-backdrop {
-        animation: rankup-backdrop-in 0.24s ease-out both;
-      }
-      .animate-rankup-sunburst {
-        animation: rankup-sunburst-spin 26s linear infinite;
-      }
-      .animate-rankup-ring {
-        animation: rankup-ring-expand 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
-      }
-      .animate-rankup-ring-delayed {
-        animation: rankup-ring-expand 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
-      }
-      .animate-rankup-crest {
-        animation: rankup-crest-reveal 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
-      }
-      .animate-rankup-xp {
-        animation: rankup-xp-ascend 0.56s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
-      }
-      .animate-rankup-gradient {
-        background-size: 220% 220%;
-        animation: rankup-gradient-flow 3.2s ease infinite;
-      }
-      .animate-rankup-banner {
-        animation: rankup-banner-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
-      }
-      .animate-rankup-media {
-        animation: rankup-media-showcase 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
-      }
-      .animate-rankup-btn {
-        animation: rankup-btn-rise 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
       }
       .animate-reward-countdown {
         transform-origin: left center;
@@ -232,10 +124,8 @@
         animation-timing-function: linear;
         animation-fill-mode: forwards;
       }
-      @keyframes normal-backdrop-in {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-      }
+
+      /* Shared background orbs (also used by BreakOverlay) */
       @keyframes normal-orb-drift {
         0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
         50% { transform: translate3d(18px, -16px, 0) scale(1.07); }
@@ -244,155 +134,292 @@
         0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
         50% { transform: translate3d(-20px, 14px, 0) scale(1.06); }
       }
-      @keyframes normal-xp-bounce {
-        0% {
-          opacity: 0;
-          transform: translateY(20px) scale(0.45);
-        }
-        45% {
-          opacity: 1;
-          transform: translateY(-8px) scale(1.12, 0.91);
-        }
-        68% {
-          transform: translateY(3px) scale(0.95, 1.05);
-        }
-        84% {
-          transform: translateY(-2px) scale(1.03, 0.98);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1, 1);
-        }
-      }
-      @keyframes normal-xp-float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
-      }
-      @keyframes normal-quote-glide {
-        0% {
-          opacity: 0;
-          transform: translateY(18px) scale(0.94);
-        }
-        65% {
-          opacity: 1;
-          transform: translateY(-3px) scale(1.015);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-      @keyframes normal-media-rise {
-        0% {
-          opacity: 0;
-          transform: perspective(900px) rotateX(12deg) translateY(26px) scale(0.92);
-        }
-        65% {
-          opacity: 1;
-          transform: perspective(900px) rotateX(-2deg) translateY(-3px) scale(1.01);
-        }
-        100% {
-          opacity: 1;
-          transform: perspective(900px) rotateX(0deg) translateY(0) scale(1);
-        }
-      }
-      @keyframes normal-btn-fade {
-        0% {
-          opacity: 0;
-          transform: translateY(12px) scale(0.96);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-      .animate-normal-backdrop {
-        animation: normal-backdrop-in 0.24s ease-out both;
-      }
       .animate-normal-orb {
         animation: normal-orb-drift 7s ease-in-out infinite;
       }
       .animate-normal-orb-alt {
         animation: normal-orb-drift-alt 8.5s ease-in-out infinite;
       }
-      .animate-normal-xp-bounce {
-        animation: normal-xp-bounce 0.68s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+      /* Reward Overlay Backdrop */
+      @keyframes chad-reward-backdrop-in {
+        from { opacity: 0.35; }
+        to { opacity: 1; }
       }
-      .animate-normal-xp-float {
-        animation: normal-xp-float 3.2s ease-in-out infinite;
+      .anim-reward-backdrop {
+        animation: chad-reward-backdrop-in 0.12s ease-out both;
+        will-change: opacity;
       }
-      .animate-normal-quote {
-        animation: normal-quote-glide 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+
+      /* === RANK-UP (NEW RANK) CHOREOGRAPHY === */
+      @keyframes chad-rank-shockwave {
+        0% { opacity: 0.92; transform: scale(0.32); }
+        70% { opacity: 0.42; }
+        100% { opacity: 0; transform: scale(2.45); }
       }
-      .animate-normal-media {
-        animation: normal-media-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+      @keyframes chad-rank-spark-rise {
+        0% { opacity: 0; transform: translate3d(0, 0, 0) scaleY(0.6); }
+        12% { opacity: 1; }
+        30% { transform: translate3d(var(--spark-drift, 14px), -28vh, 0) scaleY(1.1); }
+        60% { transform: translate3d(calc(var(--spark-drift, 14px) * -0.8), -62vh, 0) scaleY(1); opacity: 0.95; }
+        85% { opacity: 0.75; transform: translate3d(calc(var(--spark-drift, 14px) * 0.6), -92vh, 0) scaleY(0.85); }
+        100% { opacity: 0; transform: translate3d(0, -112vh, 0) scaleY(0.5); }
       }
-      .animate-normal-btn {
-        animation: normal-btn-fade 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+      @keyframes chad-rank-text-slam {
+        0% { opacity: 0.2; transform: scale(2.1) translateY(-18px); filter: blur(4px) brightness(1.6); }
+        42% { opacity: 1; transform: scale(0.93) translateY(3px); filter: blur(0) brightness(1.2); }
+        68% { transform: scale(1.05) translateY(-2px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0) brightness(1); }
       }
-      @keyframes energy-spark-travel {
-        0% {
-          opacity: 0;
-          transform: translate3d(0, 0, 0) rotate(var(--srot, 0deg)) scale(0.35);
-        }
-        14% {
-          opacity: 1;
-          transform: translate3d(calc(var(--mx, 0px) * 0.35), calc(var(--my, 0px) * 0.35), 0) rotate(calc(var(--srot, 0deg) + 30deg)) scale(var(--peak-scale, 1.2));
-        }
-        50% {
-          opacity: 0.95;
-          transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) rotate(var(--mrot, 90deg)) scale(1);
-        }
-        85% {
-          opacity: 0.85;
-        }
-        100% {
-          opacity: 0;
-          transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) rotate(var(--erot, 180deg)) scale(0.2);
-        }
+      @keyframes chad-rank-float-aura {
+        0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 18px rgba(245,158,11,0.8)); }
+        50% { transform: translateY(-6px) scale(1.03); filter: drop-shadow(0 0 30px rgba(239,68,68,0.9)); }
       }
-      @keyframes energy-streak-shoot {
-        0% {
-          opacity: 0;
-          transform: rotate(var(--angle, 0deg)) translate3d(0, 0, 0) scaleX(0.35);
-        }
-        14% {
-          opacity: 0.95;
-          transform: rotate(var(--angle, 0deg)) translate3d(calc(var(--dist, 400px) * 0.16), 0, 0) scaleX(1.3);
-        }
-        82% {
-          opacity: 0.85;
-        }
-        100% {
-          opacity: 0;
-          transform: rotate(var(--angle, 0deg)) translate3d(var(--dist, 400px), 0, 0) scaleX(0.45);
-        }
+      @keyframes chad-rank-gif-hero {
+        0% { opacity: 0.2; transform: perspective(1000px) rotateY(-58deg) scale(0.68); filter: brightness(1.45); }
+        55% { opacity: 1; transform: perspective(1000px) rotateY(8deg) scale(1.04); filter: brightness(1.08); }
+        100% { opacity: 1; transform: perspective(1000px) rotateY(0deg) scale(1); filter: brightness(1); }
       }
-      @keyframes rankup-pillar-surge {
-        0%, 100% {
-          opacity: 0.32;
-          transform: translate3d(0, 12px, 0) scaleY(0.95);
-        }
-        50% {
-          opacity: 0.68;
-          transform: translate3d(0, -18px, 0) scaleY(1.06);
-        }
+      @keyframes chad-rank-gif-pulse {
+        0%, 100% { box-shadow: 0 0 34px rgba(245,158,11,0.55), 0 0 68px rgba(220,38,38,0.4); }
+        50% { box-shadow: 0 0 52px rgba(251,191,36,0.85), 0 0 92px rgba(249,115,22,0.55); }
       }
-      .animate-energy-spark {
-        animation-name: energy-spark-travel;
+      @keyframes chad-rank-btn-in {
+        0% { opacity: 0; transform: translateY(8px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      .anim-rank-shockwave {
+        animation: chad-rank-shockwave 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+      }
+      .anim-rank-shockwave-delayed {
+        animation: chad-rank-shockwave 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+        will-change: transform, opacity;
+      }
+      .anim-rank-spark {
+        animation-name: chad-rank-spark-rise;
         animation-timing-function: linear;
         animation-iteration-count: infinite;
         animation-fill-mode: both;
+        will-change: transform, opacity;
       }
-      .animate-energy-streak {
-        animation-name: energy-streak-shoot;
+      .anim-rank-text-entry {
+        animation: chad-rank-text-slam 0.56s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+      }
+      .anim-rank-text-idle {
+        animation: chad-rank-float-aura 2.2s ease-in-out infinite;
+      }
+      .anim-rank-gif-entry {
+        animation: chad-rank-gif-hero 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+      }
+      .anim-rank-gif-pulse {
+        animation: chad-rank-gif-pulse 2s ease-in-out infinite;
+      }
+      .anim-rank-btn {
+        animation: chad-rank-btn-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+      }
+
+      /* === 6 NORMAL REWARD PRESETS (TEXT + GIF + PARTICLES) === */
+      /* 1. Titan Surge (Elastic Rebound + Levitate + Ember Drift) */
+      @keyframes chad-text-titan-surge {
+        0% { opacity: 0.25; transform: scale3d(0.45, 0.45, 1); }
+        40% { opacity: 1; transform: scale3d(1.16, 0.86, 1); }
+        58% { transform: scale3d(0.92, 1.1, 1); }
+        76% { transform: scale3d(1.04, 0.97, 1); }
+        100% { opacity: 1; transform: scale3d(1, 1, 1); }
+      }
+      @keyframes chad-gif-surge-zoom {
+        0% { opacity: 0.25; transform: scale(0.58) translateY(22px); }
+        55% { opacity: 1; transform: scale(1.06) translateY(-5px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes chad-idle-levitate {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-7px) scale(1.02); }
+      }
+      .anim-text-titan-surge { animation: chad-text-titan-surge 0.56s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+      .anim-gif-surge-zoom { animation: chad-gif-surge-zoom 0.54s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+      .anim-idle-levitate { animation: chad-idle-levitate 2.4s ease-in-out infinite; }
+
+      /* 2. War Glitch (Stepped Skew + RGB Split + Micro-Glitch Idle) */
+      @keyframes chad-text-war-glitch {
+        0% { opacity: 0.45; transform: translate(-14px, 4px) skewX(22deg) scale(1.06); filter: drop-shadow(-6px 0 #38bdf8) drop-shadow(6px 0 #ef4444); }
+        33% { opacity: 1; transform: translate(10px, -3px) skewX(-18deg); filter: drop-shadow(5px 0 #38bdf8) drop-shadow(-5px 0 #ef4444); }
+        66% { transform: translate(-5px, 2px) skewX(10deg); }
+        100% { opacity: 1; transform: translate(0, 0) skewX(0); filter: drop-shadow(0 0 14px rgba(56,189,248,0.55)); }
+      }
+      @keyframes chad-idle-glitch {
+        0%, 84%, 100% { transform: translate(0, 0) skewX(0); filter: none; }
+        87% { transform: translate(-4px, 1px) skewX(8deg); filter: drop-shadow(-3px 0 #38bdf8) drop-shadow(3px 0 #ef4444); }
+        91% { transform: translate(4px, -1px) skewX(-6deg); filter: drop-shadow(3px 0 #38bdf8) drop-shadow(-3px 0 #ef4444); }
+        95% { transform: translate(-2px, 0) skewX(3deg); filter: none; }
+      }
+      @keyframes chad-gif-war-glitch {
+        0% { opacity: 0.45; transform: scale(0.88) skewX(-16deg); filter: saturate(1.75) contrast(1.3); }
+        45% { opacity: 1; transform: scale(1.04) skewX(8deg); filter: saturate(1.4) contrast(1.2); }
+        100% { opacity: 1; transform: scale(1) skewX(0); filter: saturate(1) contrast(1); }
+      }
+      .anim-text-war-glitch { animation: chad-text-war-glitch 0.48s steps(6) both; will-change: transform, opacity; }
+      .anim-idle-glitch { animation: chad-idle-glitch 1.8s linear infinite; }
+      .anim-gif-war-glitch { animation: chad-gif-war-glitch 0.48s steps(5) both; will-change: transform, opacity; }
+
+      /* 3. Monolith 3D Flip (X Flip + Subtle 3D Tilt + Y Card Turn) */
+      @keyframes chad-text-monolith-flip {
+        0% { opacity: 0.25; transform: perspective(700px) rotateX(72deg) scale(0.86); }
+        50% { opacity: 1; transform: perspective(700px) rotateX(-14deg) scale(1.04); }
+        100% { opacity: 1; transform: perspective(700px) rotateX(0deg) scale(1); }
+      }
+      @keyframes chad-idle-tilt {
+        0%, 100% { transform: perspective(700px) rotateX(0deg) translateY(0); }
+        50% { transform: perspective(700px) rotateX(7deg) translateY(-5px); }
+      }
+      @keyframes chad-gif-monolith-turn {
+        0% { opacity: 0.25; transform: perspective(900px) rotateY(95deg) scale(0.86); }
+        60% { opacity: 1; transform: perspective(900px) rotateY(-10deg) scale(1.03); }
+        100% { opacity: 1; transform: perspective(900px) rotateY(0deg) scale(1); }
+      }
+      .anim-text-monolith-flip { animation: chad-text-monolith-flip 0.56s cubic-bezier(0.16, 1, 0.3, 1) both; will-change: transform, opacity; }
+      .anim-idle-tilt { animation: chad-idle-tilt 2.4s ease-in-out infinite; }
+      .anim-gif-monolith-turn { animation: chad-gif-monolith-turn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; will-change: transform, opacity; }
+
+      /* 4. Blitz Strike (Whip Left + Counter Whip Right + Horizontal Sway) */
+      @keyframes chad-text-blitz-left {
+        0% { opacity: 0.35; transform: translateX(-48vw) skewX(22deg); }
+        58% { opacity: 1; transform: translateX(14px) skewX(-9deg); }
+        100% { opacity: 1; transform: translateX(0) skewX(0); }
+      }
+      @keyframes chad-idle-sway {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(6px); }
+      }
+      @keyframes chad-gif-blitz-right {
+        0% { opacity: 0.35; transform: translateX(48vw) skewX(-18deg); }
+        58% { opacity: 1; transform: translateX(-14px) skewX(7deg); }
+        100% { opacity: 1; transform: translateX(0) skewX(0); }
+      }
+      .anim-text-blitz-left { animation: chad-text-blitz-left 0.48s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+      .anim-idle-sway { animation: chad-idle-sway 2.2s ease-in-out infinite; }
+      .anim-gif-blitz-right { animation: chad-gif-blitz-right 0.48s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+
+      /* 5. Anvil Stamp (Stamp Drop + Heartbeat Tilt + Recoil Tada) */
+      @keyframes chad-text-anvil-stamp {
+        0% { opacity: 0.25; transform: scale(2.1) rotate(-12deg); filter: blur(3px); }
+        55% { opacity: 1; transform: scale(0.93) rotate(3deg); filter: blur(0); }
+        100% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
+      }
+      @keyframes chad-idle-pulse-tilt {
+        0%, 100% { transform: scale(1) rotate(-1.5deg); }
+        50% { transform: scale(1.04) rotate(1deg); }
+      }
+      @keyframes chad-gif-recoil {
+        0% { opacity: 0.3; transform: scale(0.65); }
+        28% { opacity: 1; transform: scale(0.94) rotate(-4deg); }
+        48% { transform: scale(1.06) rotate(4deg); }
+        68% { transform: scale(1.04) rotate(-2.5deg); }
+        100% { opacity: 1; transform: scale(1) rotate(0deg); }
+      }
+      .anim-text-anvil-stamp { animation: chad-text-anvil-stamp 0.46s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+      .anim-idle-pulse-tilt { animation: chad-idle-pulse-tilt 2.1s ease-in-out infinite; }
+      .anim-gif-recoil { animation: chad-gif-recoil 0.58s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+
+      /* 6. Valhalla Mist (Vapor Rise + Pendulum Swing + Slow Levitate) */
+      @keyframes chad-text-valhalla-rise {
+        0% { opacity: 0.25; transform: translateY(22px) scale(0.95); filter: blur(4px); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      }
+      @keyframes chad-gif-pendulum {
+        0% { opacity: 0.25; transform: translateY(18px) rotate(-9deg) scale(0.92); }
+        45% { opacity: 1; transform: translateY(-4px) rotate(4deg) scale(1.02); }
+        75% { transform: translateY(2px) rotate(-2deg) scale(1); }
+        100% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+      }
+      .anim-text-valhalla-rise { animation: chad-text-valhalla-rise 0.52s cubic-bezier(0.16, 1, 0.3, 1) both; will-change: transform, opacity; }
+      .anim-gif-pendulum { animation: chad-gif-pendulum 0.58s cubic-bezier(0.16, 1, 0.3, 1) both; will-change: transform, opacity; }
+
+      /* === 6 PARTICLE MOTION SYSTEMS === */
+      @keyframes chad-particle-ember-drift {
+        0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.4); }
+        20% { opacity: 0.95; }
+        38% { transform: translate3d(var(--x1, 20px), var(--y1, -24px), 0) scale(1.15); }
+        72% { transform: translate3d(var(--x2, -18px), var(--y2, -52px), 0) scale(0.85); opacity: 0.85; }
+        100% { opacity: 0; transform: translate3d(var(--x3, 14px), var(--y3, -84px), 0) scale(0.3); }
+      }
+      @keyframes chad-particle-glitch-bar {
+        0% { opacity: 0; transform: translate3d(var(--gx0, -18vw), 0, 0) scaleX(0.4); }
+        20% { opacity: 0.95; transform: translate3d(var(--gx1, 14vw), 0, 0) scaleX(1.3); }
+        68% { opacity: 0.8; transform: translate3d(var(--gx2, 54vw), 0, 0) scaleX(0.95); }
+        100% { opacity: 0; transform: translate3d(var(--gx3, 102vw), 0, 0) scaleX(0.3); }
+      }
+      @keyframes chad-particle-diamond-twinkle {
+        0%, 100% { opacity: 0.15; transform: rotate(45deg) scale(0.45); }
+        45% { opacity: 1; transform: rotate(135deg) scale(1.25); }
+        75% { opacity: 0.75; transform: rotate(185deg) scale(0.95); }
+        92% { opacity: 0.25; transform: rotate(225deg) scale(0.5); }
+      }
+      @keyframes chad-particle-slash-streak {
+        0% { opacity: 0; transform: rotate(-18deg) translate3d(-20vw, 0, 0) scaleX(0.45); }
+        18% { opacity: 0.95; transform: rotate(-18deg) translate3d(18vw, 0, 0) scaleX(1.25); }
+        80% { opacity: 0.8; }
+        100% { opacity: 0; transform: rotate(-18deg) translate3d(125vw, 0, 0) scaleX(0.5); }
+      }
+      @keyframes chad-particle-radial-burst {
+        0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.45) rotate(0deg); }
+        15% { opacity: 1; transform: translate3d(calc(var(--bx, 180px) * 0.22), calc(var(--by, -120px) * 0.22), 0) scale(1.3) rotate(60deg); }
+        100% { opacity: 0; transform: translate3d(var(--bx, 180px), var(--by, -120px), 0) scale(0.25) rotate(220deg); }
+      }
+      @keyframes chad-particle-cinder-fall {
+        0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg) scale(0.6); }
+        15% { opacity: 0.9; }
+        50% { opacity: 0.85; transform: translate3d(var(--sway, 24px), 54vh, 0) rotate(110deg) scale(1.05); }
+        85% { opacity: 0.65; }
+        100% { opacity: 0; transform: translate3d(calc(var(--sway, 24px) * -0.7), 112vh, 0) rotate(220deg) scale(0.45); }
+      }
+      .anim-p-ember {
+        animation-name: chad-particle-ember-drift;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+        will-change: transform, opacity;
+      }
+      .anim-p-glitch {
+        animation-name: chad-particle-glitch-bar;
+        animation-timing-function: steps(8);
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+        will-change: transform, opacity;
+      }
+      .anim-p-diamond {
+        animation-name: chad-particle-diamond-twinkle;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+        will-change: transform, opacity;
+      }
+      .anim-p-slash {
+        animation-name: chad-particle-slash-streak;
         animation-timing-function: linear;
         animation-iteration-count: infinite;
         animation-fill-mode: both;
+        will-change: transform, opacity;
       }
-      .animate-rankup-pillar {
-        animation: rankup-pillar-surge 2.2s ease-in-out infinite;
+      .anim-p-burst {
+        animation-name: chad-particle-radial-burst;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+        will-change: transform, opacity;
       }
+      .anim-p-cinder {
+        animation-name: chad-particle-cinder-fall;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+        will-change: transform, opacity;
+      }
+
+      /* Break Screen */
       @keyframes break-backdrop-in {
         0% { opacity: 0; }
         100% { opacity: 1; }
@@ -433,27 +460,40 @@
         .animate-victory-confetti,
         .animate-victory-stagger,
         .animate-victory-shimmer,
-        .animate-rankup-backdrop,
-        .animate-rankup-sunburst,
-        .animate-rankup-ring,
-        .animate-rankup-ring-delayed,
-        .animate-rankup-crest,
-        .animate-rankup-xp,
-        .animate-rankup-gradient,
-        .animate-rankup-banner,
-        .animate-rankup-media,
-        .animate-rankup-btn,
-        .animate-rankup-pillar,
-        .animate-normal-backdrop,
         .animate-normal-orb,
         .animate-normal-orb-alt,
-        .animate-normal-xp-bounce,
-        .animate-normal-xp-float,
-        .animate-normal-quote,
-        .animate-normal-media,
-        .animate-normal-btn,
-        .animate-energy-spark,
-        .animate-energy-streak,
+        .anim-reward-backdrop,
+        .anim-rank-shockwave,
+        .anim-rank-shockwave-delayed,
+        .anim-rank-spark,
+        .anim-rank-text-entry,
+        .anim-rank-text-idle,
+        .anim-rank-gif-entry,
+        .anim-rank-gif-pulse,
+        .anim-rank-btn,
+        .anim-text-titan-surge,
+        .anim-gif-surge-zoom,
+        .anim-idle-levitate,
+        .anim-text-war-glitch,
+        .anim-idle-glitch,
+        .anim-gif-war-glitch,
+        .anim-text-monolith-flip,
+        .anim-idle-tilt,
+        .anim-gif-monolith-turn,
+        .anim-text-blitz-left,
+        .anim-idle-sway,
+        .anim-gif-blitz-right,
+        .anim-text-anvil-stamp,
+        .anim-idle-pulse-tilt,
+        .anim-gif-recoil,
+        .anim-text-valhalla-rise,
+        .anim-gif-pendulum,
+        .anim-p-ember,
+        .anim-p-glitch,
+        .anim-p-diamond,
+        .anim-p-slash,
+        .anim-p-burst,
+        .anim-p-cinder,
         .animate-break-backdrop,
         .animate-break-card,
         .animate-break-breathe,
