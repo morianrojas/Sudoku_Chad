@@ -9,10 +9,16 @@
     <meta property="og:description" content="A clean, aesthetic Sudoku game with multiple difficulty levels and intelligent highlighting." />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
         touch-action: manipulation;
+      }
+      .font-display {
+        font-family: 'Barlow Condensed', 'Plus Jakarta Sans', sans-serif;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       }
       /* Custom scrollbar hiding for clean UI */
       .no-scrollbar::-webkit-scrollbar {
@@ -419,6 +425,106 @@
         will-change: transform, opacity;
       }
 
+      /* === SUDOKU UNIT COMPLETION ANIMATIONS (DYNAMIC DIFFICULTY THEME) === */
+      @keyframes chad-unit-cell-ripple {
+        0% { background-color: #ffffff; transform: scale(1); box-shadow: inset 0 0 0 0 transparent; }
+        28% { background-color: var(--unit-r1, #99f6e4); transform: scale(1.13); box-shadow: inset 0 0 14px var(--unit-r1-glow, rgba(13,148,136,0.5)); z-index: 20; }
+        58% { background-color: var(--unit-r2, #bae6fd); transform: scale(1.04); box-shadow: inset 0 0 12px var(--unit-r2-glow, rgba(2,132,199,0.45)); z-index: 20; }
+        100% { background-color: #ffffff; transform: scale(1); box-shadow: inset 0 0 0 0 transparent; }
+      }
+      @keyframes chad-unit-cell-flip {
+        0% { background-color: #ffffff; transform: perspective(420px) rotateX(0deg) scale(1); }
+        32% { background-color: var(--unit-f1, #a7f3d0); transform: perspective(420px) rotateX(28deg) scale(1.14); box-shadow: inset 0 0 16px var(--unit-f1-glow, rgba(16,185,129,0.55)); z-index: 20; }
+        65% { background-color: var(--unit-f2, #99f6e4); transform: perspective(420px) rotateX(-12deg) scale(1.05); box-shadow: inset 0 0 10px var(--unit-f2-glow, rgba(13,148,136,0.42)); z-index: 20; }
+        100% { background-color: #ffffff; transform: perspective(420px) rotateX(0deg) scale(1); }
+      }
+      @keyframes chad-unit-cell-neon {
+        0% { background-color: #ffffff; transform: scale(1); }
+        25% { background-color: var(--unit-n1, #bae6fd); transform: scale(0.92); box-shadow: inset 0 0 14px var(--unit-n1-glow, rgba(2,132,199,0.5)); z-index: 20; }
+        55% { background-color: var(--unit-n2, #fde68a); transform: scale(1.15); box-shadow: inset 0 0 16px var(--unit-n2-glow, rgba(217,119,6,0.48)); z-index: 20; }
+        100% { background-color: #ffffff; transform: scale(1); }
+      }
+      @keyframes chad-unit-digit-pop {
+        0% { transform: scale(1); }
+        35% { transform: scale(1.32); color: var(--unit-d1, #0f766e); text-shadow: 0 0 12px var(--unit-d1-glow, rgba(13,148,136,0.4)); }
+        68% { transform: scale(1.12); color: var(--unit-d2, #0369a1); text-shadow: 0 0 10px var(--unit-d2-glow, rgba(2,132,199,0.38)); }
+        100% { transform: scale(1); }
+      }
+      @keyframes chad-unit-digit-spin {
+        0% { transform: rotateY(0deg) scale(1); }
+        45% { transform: rotateY(180deg) scale(1.28); color: var(--unit-d-spin, #047857); text-shadow: 0 0 12px var(--unit-d-spin-glow, rgba(16,185,129,0.45)); }
+        100% { transform: rotateY(360deg) scale(1); }
+      }
+      @keyframes chad-unit-sheen-sweep {
+        0% { opacity: 0; transform: translateX(-140%) skewX(-24deg); }
+        35% { opacity: 0.95; }
+        100% { opacity: 0; transform: translateX(180%) skewX(-24deg); }
+      }
+      @keyframes chad-unit-beam-h {
+        0% { opacity: 0; transform: scaleX(0.1); }
+        25% { opacity: 0.95; transform: scaleX(1); }
+        75% { opacity: 0.65; }
+        100% { opacity: 0; transform: scaleX(1.04); }
+      }
+      @keyframes chad-unit-beam-v {
+        0% { opacity: 0; transform: scaleY(0.1); }
+        25% { opacity: 0.95; transform: scaleY(1); }
+        75% { opacity: 0.65; }
+        100% { opacity: 0; transform: scaleY(1.04); }
+      }
+      @keyframes chad-unit-box-glow {
+        0% { opacity: 0; transform: scale(0.92); }
+        30% { opacity: 1; transform: scale(1.02); }
+        75% { opacity: 0.85; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.04); }
+      }
+      @keyframes chad-unit-origin-ring {
+        0% { opacity: 0.95; transform: scale(0.35); }
+        100% { opacity: 0; transform: scale(3.2); }
+      }
+      @keyframes chad-unit-banner-pop {
+        0% { opacity: 0; transform: translateY(10px) scale(0.75); }
+        22% { opacity: 1; transform: translateY(-2px) scale(1.06); }
+        78% { opacity: 1; transform: translateY(-4px) scale(1); }
+        100% { opacity: 0; transform: translateY(-10px) scale(0.96); }
+      }
+      .anim-unit-cell-ripple {
+        animation: chad-unit-cell-ripple 0.82s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, background-color;
+      }
+      .anim-unit-cell-flip {
+        animation: chad-unit-cell-flip 0.86s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, background-color;
+      }
+      .anim-unit-cell-neon {
+        animation: chad-unit-cell-neon 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, background-color;
+      }
+      .anim-unit-digit-pop {
+        animation: chad-unit-digit-pop 0.82s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .anim-unit-digit-spin {
+        animation: chad-unit-digit-spin 0.86s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .anim-unit-sheen {
+        animation: chad-unit-sheen-sweep 0.74s ease-out both;
+      }
+      .anim-unit-beam-h {
+        animation: chad-unit-beam-h 1.12s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .anim-unit-beam-v {
+        animation: chad-unit-beam-v 1.12s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .anim-unit-box-glow {
+        animation: chad-unit-box-glow 1.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .anim-unit-origin-ring {
+        animation: chad-unit-origin-ring 0.96s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .anim-unit-banner {
+        animation: chad-unit-banner-pop 1.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
       /* Break Screen */
       @keyframes break-backdrop-in {
         0% { opacity: 0; }
@@ -494,6 +600,17 @@
         .anim-p-slash,
         .anim-p-burst,
         .anim-p-cinder,
+        .anim-unit-cell-ripple,
+        .anim-unit-cell-flip,
+        .anim-unit-cell-neon,
+        .anim-unit-digit-pop,
+        .anim-unit-digit-spin,
+        .anim-unit-sheen,
+        .anim-unit-beam-h,
+        .anim-unit-beam-v,
+        .anim-unit-box-glow,
+        .anim-unit-origin-ring,
+        .anim-unit-banner,
         .animate-break-backdrop,
         .animate-break-card,
         .animate-break-breathe,

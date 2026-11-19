@@ -58,26 +58,27 @@ export interface RankDef {
   img: string;
   orientation: 'horizontal' | 'vertical';
   color: string;
+  lightColor: string;
   shadow: string;
 }
 
 export const RANKS: RankDef[] = [
-  { name: "Bronze", orientation: 'horizontal', color: 'text-amber-700', shadow: 'shadow-amber-700/60', img: "https://wallpapers.com/images/high/one-piece-chopper-syt2h7pt9syt4a58.webp" },
-  { name: "Silver", orientation: 'vertical', color: 'text-slate-400', shadow: 'shadow-slate-400/60', img: "https://c4.wallpaperflare.com/wallpaper/929/339/714/anime-yamcha-dragon-ball-z-dragon-ball-hd-wallpaper-preview.jpg" },
-  { name: "Gold", orientation: 'horizontal', color: 'text-yellow-500', shadow: 'shadow-yellow-500/60', img: "https://wallpapers.com/images/high/brooks-art-one-piece-ofkielx5cem79sor.webp" },
-  { name: "Platinum", orientation: 'horizontal', color: 'text-cyan-400', shadow: 'shadow-cyan-400/60', img: "https://wallpapers.com/images/high/goku-aesthetic-d1qyw825zqcg18w4.webp" },
-  { name: "Crimson", orientation: 'vertical', color: 'text-red-600', shadow: 'shadow-red-600/60', img: "https://wallpapers.com/images/high/anime-swordsman-roronoa-zoro-pfp-td4smmnk5vkuv9r2.webp" },
-  { name: "Iridescent", orientation: 'vertical', color: 'text-pink-500', shadow: 'shadow-pink-500/60', img: rankIridescentImg },
-  { name: "Champion", orientation: 'vertical', color: 'text-blue-600', shadow: 'shadow-blue-600/60', img: rankChampionImg },
-  { name: "Grand Champion", orientation: 'horizontal', color: 'text-blue-800', shadow: 'shadow-blue-800/60', img: "https://c4.wallpaperflare.com/wallpaper/649/598/466/dragon-ball-dragon-ball-super-vegeta-super-saiyajin-blue-wallpaper-preview.jpg" },
-  { name: "Legend", orientation: 'vertical', color: 'text-purple-600', shadow: 'shadow-purple-600/60', img: "https://wallpapers.com/images/high/menacing-look-of-jujutsu-kaisen-phone-cvhrmr4w0irwe3er.webp" },
-  { name: "Master", orientation: 'horizontal', color: 'text-indigo-600', shadow: 'shadow-indigo-600/60', img: "https://c4.wallpaperflare.com/wallpaper/207/731/645/movie-dragon-ball-super-broly-broly-dragon-ball-hd-wallpaper-preview.jpg" },
-  { name: "Grand Master", orientation: 'horizontal', color: 'text-indigo-800', shadow: 'shadow-indigo-800/60', img: "https://c4.wallpaperflare.com/wallpaper/412/970/466/jujutsu-kaisen-anime-anime-screenshot-fushiguro-toji-water-splash-hd-wallpaper-preview.jpg" },
-  { name: "Super Iridescent", orientation: 'horizontal', color: 'text-fuchsia-500', shadow: 'shadow-fuchsia-500/60', img: "https://c4.wallpaperflare.com/wallpaper/118/967/730/dragon-ball-dragon-ball-super-son-goku-black-goku-wallpaper-preview.jpg" },
-  { name: "Purple Void", orientation: 'vertical', color: 'text-violet-600', shadow: 'shadow-violet-600/60', img: "https://wallpapers.com/images/high/satoru-red-cursed-technique-jujutsu-kaisen-phone-7zm50eeu9tugr9fb.webp" },
-  { name: "God Level", orientation: 'horizontal', color: 'text-sky-500', shadow: 'shadow-sky-500/60', img: "https://wallpapers.com/images/high/goku-dragon-ball-super-5wffv5plfg2e07vc.webp" },
-  { name: "Warrior of Liberation", orientation: 'vertical', color: 'text-orange-500', shadow: 'shadow-orange-500/60', img: "https://c4.wallpaperflare.com/wallpaper/259/731/611/one-piece-monkey-d-luffy-gear-5th-sun-god-nika-vincentnoon-hd-wallpaper-preview.jpg" },
-  { name: "Ultra Instinct", orientation: 'horizontal', color: 'text-slate-600', shadow: 'shadow-slate-600/60', img: "https://wallpapers.com/images/high/goku-dragon-ball-super-jndbndtdmrhwju8i.webp" }
+  { name: "Bronze", orientation: 'horizontal', color: 'text-amber-500', lightColor: 'text-amber-700', shadow: 'shadow-amber-600/35', img: "https://wallpapers.com/images/high/one-piece-chopper-syt2h7pt9syt4a58.webp" },
+  { name: "Silver", orientation: 'vertical', color: 'text-slate-300', lightColor: 'text-slate-600', shadow: 'shadow-slate-500/35', img: "https://c4.wallpaperflare.com/wallpaper/929/339/714/anime-yamcha-dragon-ball-z-dragon-ball-hd-wallpaper-preview.jpg" },
+  { name: "Gold", orientation: 'horizontal', color: 'text-yellow-400', lightColor: 'text-amber-600', shadow: 'shadow-amber-500/35', img: "https://wallpapers.com/images/high/brooks-art-one-piece-ofkielx5cem79sor.webp" },
+  { name: "Platinum", orientation: 'horizontal', color: 'text-cyan-300', lightColor: 'text-cyan-700', shadow: 'shadow-cyan-600/35', img: "https://wallpapers.com/images/high/goku-aesthetic-d1qyw825zqcg18w4.webp" },
+  { name: "Crimson", orientation: 'vertical', color: 'text-red-400', lightColor: 'text-red-700', shadow: 'shadow-red-600/35', img: "https://wallpapers.com/images/high/anime-swordsman-roronoa-zoro-pfp-td4smmnk5vkuv9r2.webp" },
+  { name: "Iridescent", orientation: 'vertical', color: 'text-pink-400', lightColor: 'text-pink-700', shadow: 'shadow-pink-500/35', img: rankIridescentImg },
+  { name: "Champion", orientation: 'vertical', color: 'text-sky-400', lightColor: 'text-sky-700', shadow: 'shadow-sky-500/35', img: rankChampionImg },
+  { name: "Grand Champion", orientation: 'horizontal', color: 'text-blue-400', lightColor: 'text-blue-700', shadow: 'shadow-blue-600/35', img: "https://c4.wallpaperflare.com/wallpaper/649/598/466/dragon-ball-dragon-ball-super-vegeta-super-saiyajin-blue-wallpaper-preview.jpg" },
+  { name: "Legend", orientation: 'vertical', color: 'text-purple-400', lightColor: 'text-purple-700', shadow: 'shadow-purple-600/35', img: "https://wallpapers.com/images/high/menacing-look-of-jujutsu-kaisen-phone-cvhrmr4w0irwe3er.webp" },
+  { name: "Master", orientation: 'horizontal', color: 'text-indigo-400', lightColor: 'text-indigo-700', shadow: 'shadow-indigo-600/35', img: "https://c4.wallpaperflare.com/wallpaper/207/731/645/movie-dragon-ball-super-broly-broly-dragon-ball-hd-wallpaper-preview.jpg" },
+  { name: "Grand Master", orientation: 'horizontal', color: 'text-indigo-300', lightColor: 'text-indigo-800', shadow: 'shadow-indigo-500/35', img: "https://c4.wallpaperflare.com/wallpaper/412/970/466/jujutsu-kaisen-anime-anime-screenshot-fushiguro-toji-water-splash-hd-wallpaper-preview.jpg" },
+  { name: "Super Iridescent", orientation: 'horizontal', color: 'text-fuchsia-400', lightColor: 'text-fuchsia-700', shadow: 'shadow-fuchsia-500/35', img: "https://c4.wallpaperflare.com/wallpaper/118/967/730/dragon-ball-dragon-ball-super-son-goku-black-goku-wallpaper-preview.jpg" },
+  { name: "Purple Void", orientation: 'vertical', color: 'text-violet-400', lightColor: 'text-violet-700', shadow: 'shadow-violet-600/35', img: "https://wallpapers.com/images/high/satoru-red-cursed-technique-jujutsu-kaisen-phone-7zm50eeu9tugr9fb.webp" },
+  { name: "God Level", orientation: 'horizontal', color: 'text-sky-300', lightColor: 'text-sky-700', shadow: 'shadow-sky-500/35', img: "https://wallpapers.com/images/high/goku-dragon-ball-super-5wffv5plfg2e07vc.webp" },
+  { name: "Warrior of Liberation", orientation: 'vertical', color: 'text-orange-400', lightColor: 'text-orange-600', shadow: 'shadow-orange-500/35', img: "https://c4.wallpaperflare.com/wallpaper/259/731/611/one-piece-monkey-d-luffy-gear-5th-sun-god-nika-vincentnoon-hd-wallpaper-preview.jpg" },
+  { name: "Ultra Instinct", orientation: 'horizontal', color: 'text-slate-100', lightColor: 'text-slate-900', shadow: 'shadow-slate-500/35', img: "https://wallpapers.com/images/high/goku-dragon-ball-super-jndbndtdmrhwju8i.webp" }
 ];
 
 // --- DEFAULT AUDIO & VISUAL REWARDS ---

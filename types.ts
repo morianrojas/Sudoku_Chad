@@ -60,3 +60,16 @@ export interface AppSettings {
   showActivityLog: boolean;
   showRewardTimerBar: boolean;
 }
+
+export type UnitClearVariant = 'ripple-wave' | 'golden-flip' | 'neon-sweep';
+
+export interface UnitClearAnimation {
+  id: number;
+  originRow: number;
+  originCol: number;
+  rows: number[];
+  cols: number[];
+  boxes: number[];
+  variant: UnitClearVariant;
+  isBoardComplete: boolean;
+}

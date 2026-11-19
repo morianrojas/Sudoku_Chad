@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
+import { Difficulty } from '../types';
+import { DIFFICULTY_THEMES } from '../data/difficultyThemes';
 
 interface GameTimerProps {
   sessionId: number;
@@ -7,6 +9,7 @@ interface GameTimerProps {
   isPaused: boolean;
   onTogglePause: () => void;
   elapsedRef?: React.MutableRefObject<number>;
+  difficulty?: Difficulty;
 }
 
 export const formatTime = (seconds: number): string => {
@@ -16,7 +19,8 @@ export const formatTime = (seconds: number): string => {
   return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-const GameTimer: React.FC<GameTimerProps> = React.memo(({ sessionId, isRunning, isPaused, onTogglePause, elapsedRef }) => {
+const GameTimer: React.FC<GameTimerProps> = React.memo(({ sessionId, isRunning, isPaused, onTogglePause, elapsedRef, difficulty = Difficulty.EASY }) => {
+  const theme = DIFFICULTY_THEMES[difficulty];
   const [timeElapsed, setTimeElapsed] = useState<number>(() => elapsedRef?.current ?? 0);
   const lastSessionIdRef = useRef<number>(sessionId);
   const accumulatedMsRef = useRef<number>((elapsedRef?.current ?? 0) * 1000);
@@ -71,11 +75,11 @@ const GameTimer: React.FC<GameTimerProps> = React.memo(({ sessionId, isRunning, 
   }, [isRunning, elapsedRef]);
 
   return (
-    <div className="col-span-1 flex items-center justify-center gap-2 bg-white border border-slate-200 py-2 rounded-xl shadow-sm">
-      <span className="text-sm font-mono font-bold text-slate-700 tabular-nums">{formatTime(timeElapsed)}</span>
+    <div className={`col-span-1 flex items-center justify-center gap-2 bg-white/95 border ${theme.timerBoxBorder} py-2 rounded-lg shadow-[0_2px_6px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]`}>
+      <span className="text-sm font-mono font-extrabold text-slate-900 tabular-nums">{formatTime(timeElapsed)}</span>
       <button
         onClick={onTogglePause}
-        className="text-slate-500 hover:text-blue-600 transition-colors"
+        className={`text-slate-500 ${theme.timerBtnHover} transition-colors duration-150`}
         aria-label={isPaused ? 'Resume game' : 'Pause game'}
       >
         {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}

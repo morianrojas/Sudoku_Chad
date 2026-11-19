@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Difficulty, GameState, Board, Cell, Coords, AppSettings, ActivityLogEntry } from './types';
+import {
+  Difficulty,
+  GameState,
+  Board,
+  Cell,
+  Coords,
+  AppSettings,
+  ActivityLogEntry,
+  UnitClearAnimation,
+  UnitClearVariant,
+} from './types';
 import { generateSudoku } from './utils/sudokuLogic';
 import {
   QUOTE_PACKAGES,
@@ -26,6 +36,7 @@ import {
   getRankIndexForScore,
   getRankProgressInfo,
 } from './data/gameData';
+import { DIFFICULTY_THEMES } from './data/difficultyThemes';
 import MainMenu from './components/MainMenu';
 import NumberPad from './components/NumberPad';
 import Tools from './components/Tools';
@@ -94,6 +105,137 @@ const addLog = (
   };
   const newLog = [...prevGameState.activityLog, newEntry];
   return newLog.length > 50 ? newLog.slice(newLog.length - 50) : newLog;
+};
+
+const UNIT_ANIM_DURATION_MS = 1400;
+const UNIT_CLEAR_VARIANTS: UnitClearVariant[] = ['ripple-wave', 'golden-flip', 'neon-sweep'];
+let unitClearVariantBag: UnitClearVariant[] = [];
+let lastUnitClearVariant: UnitClearVariant | null = null;
+
+function popNextUnitClearVariant(): UnitClearVariant {
+  if (unitClearVariantBag.length === 0) {
+    const nextBag = [...UNIT_CLEAR_VARIANTS];
+    for (let i = nextBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [nextBag[i], nextBag[j]] = [nextBag[j], nextBag[i]];
+    }
+    if (nextBag.length > 1 && nextBag[nextBag.length - 1] === lastUnitClearVariant) {
+      [nextBag[0], nextBag[nextBag.length - 1]] = [nextBag[nextBag.length - 1], nextBag[0]];
+    }
+    unitClearVariantBag = nextBag;
+  }
+  const picked = unitClearVariantBag.pop()!;
+  lastUnitClearVariant = picked;
+  return picked;
+}
+
+const isRowSolved = (board: Board, solution: number[][], row: number): boolean => {
+  for (let c = 0; c < 9; c++) {
+    if (board[row][c].value !== solution[row][c]) return false;
+  }
+  return true;
+};
+
+const isColSolved = (board: Board, solution: number[][], col: number): boolean => {
+  for (let r = 0; r < 9; r++) {
+    if (board[r][col].value !== solution[r][col]) return false;
+  }
+  return true;
+};
+
+const isBoxSolved = (
+  board: Board,
+  solution: number[][],
+  boxRow: number,
+  boxCol: number
+): boolean => {
+  const startR = boxRow * 3;
+  const startC = boxCol * 3;
+  for (let r = startR; r < startR + 3; r++) {
+    for (let c = startC; c < startC + 3; c++) {
+      if (board[r][c].value !== solution[r][c]) return false;
+    }
+  }
+  return true;
+};
+
+const detectCompletedUnits = (
+  prevBoard: Board,
+  nextBoard: Board,
+  solution: number[][],
+  row: number,
+  col: number
+): { rows: number[]; cols: number[]; boxes: number[]; hasCompletedUnit: boolean } => {
+  const rows: number[] = [];
+  const cols: number[] = [];
+  const boxes: number[] = [];
+
+  if (!isRowSolved(prevBoard, solution, row) && isRowSolved(nextBoard, solution, row)) {
+    rows.push(row);
+  }
+  if (!isColSolved(prevBoard, solution, col) && isColSolved(nextBoard, solution, col)) {
+    cols.push(col);
+  }
+  const boxRow = Math.floor(row / 3);
+  const boxCol = Math.floor(col / 3);
+  if (
+    !isBoxSolved(prevBoard, solution, boxRow, boxCol) &&
+    isBoxSolved(nextBoard, solution, boxRow, boxCol)
+  ) {
+    boxes.push(boxRow * 3 + boxCol);
+  }
+
+  return {
+    rows,
+    cols,
+    boxes,
+    hasCompletedUnit: rows.length > 0 || cols.length > 0 || boxes.length > 0,
+  };
+};
+
+const playUnitClearChime = (
+  unitCount: number,
+  isBoardComplete: boolean,
+  volumePercent: number
+) => {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const masterGain = ctx.createGain();
+    const vol = Math.max(0.03, Math.min(0.32, (volumePercent / 100) * 0.28));
+    masterGain.gain.setValueAtTime(vol, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const notes = isBoardComplete
+      ? [523.25, 659.25, 783.99, 1046.5]
+      : unitCount >= 2
+        ? [523.25, 659.25, 783.99, 987.77]
+        : [523.25, 659.25, 783.99];
+    const now = ctx.currentTime;
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.095);
+      gain.gain.setValueAtTime(0.001, now + idx * 0.095);
+      gain.gain.exponentialRampToValueAtTime(0.42, now + idx * 0.095 + 0.028);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.095 + 0.48);
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start(now + idx * 0.095);
+      osc.stop(now + idx * 0.095 + 0.5);
+    });
+
+    window.setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 1250);
+  } catch {
+    // Web Audio unavailable
+  }
 };
 
 const App: React.FC = () => {
@@ -178,9 +320,11 @@ const App: React.FC = () => {
   const activeAudioRefs = useRef<HTMLAudioElement[]>([]);
 
   // Preload & Timer Refs
+  const [unitClearAnim, setUnitClearAnim] = useState<UnitClearAnimation | null>(null);
   const preloadedUrlsRef = useRef<Set<string>>(new Set());
   const elapsedSecondsRef = useRef<number>(0);
   const breakDelayTimeoutRef = useRef<number | null>(null);
+  const unitAnimTimeoutRef = useRef<number | null>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
@@ -206,6 +350,7 @@ const App: React.FC = () => {
   useEffect(() => {
     return () => {
       if (breakDelayTimeoutRef.current !== null) window.clearTimeout(breakDelayTimeoutRef.current);
+      if (unitAnimTimeoutRef.current !== null) window.clearTimeout(unitAnimTimeoutRef.current);
       if (copyFeedbackTimeoutRef.current !== null) window.clearTimeout(copyFeedbackTimeoutRef.current);
       if (toastTimeoutRef.current !== null) window.clearTimeout(toastTimeoutRef.current);
       activeAudioRefs.current.forEach((audio) => {
@@ -566,6 +711,11 @@ const App: React.FC = () => {
       window.clearTimeout(breakDelayTimeoutRef.current);
       breakDelayTimeoutRef.current = null;
     }
+    if (unitAnimTimeoutRef.current !== null) {
+      window.clearTimeout(unitAnimTimeoutRef.current);
+      unitAnimTimeoutRef.current = null;
+    }
+    setUnitClearAnim(null);
 
     const { initial, solution } = generateSudoku(difficulty);
 
@@ -696,7 +846,7 @@ const App: React.FC = () => {
 
   const handleInput = useCallback(
     (num: number | null) => {
-      if (!gameState || !selectedCell || gameState.isComplete || isBreakPending) return;
+      if (!gameState || !selectedCell || gameState.isComplete || isBreakPending || unitClearAnim) return;
 
       const { row, col } = selectedCell;
       const currentCell = gameState.board[row][col];
@@ -748,6 +898,18 @@ const App: React.FC = () => {
       let logType: ActivityLogEntry['type'] = 'info';
       let rewardTriggered = false;
       let isCorrectHit = false;
+      let completedUnits: { rows: number[]; cols: number[]; boxes: number[]; hasCompletedUnit: boolean } = {
+        rows: [],
+        cols: [],
+        boxes: [],
+        hasCompletedUnit: false,
+      };
+      let queuedReward: {
+        gif: string;
+        rewardData: { quote: string; xp: number; rankIndex?: number };
+        isRankUp: boolean;
+        rankUpSound?: string;
+      } | null = null;
 
       let isComplete = true;
       let correctCellsCount = 0;
@@ -769,6 +931,13 @@ const App: React.FC = () => {
 
         if (isCorrect) {
           isCorrectHit = true;
+          completedUnits = detectCompletedUnits(
+            gameState.board,
+            newBoard,
+            gameState.solution,
+            row,
+            col
+          );
           const maxAllowedMistakes = MAX_MISTAKES_FOR_MAX_RANK[gameState.difficulty];
           const canUnlockMaxRank =
             isComplete &&
@@ -817,34 +986,28 @@ const App: React.FC = () => {
                 if (isRankUpEvent) {
                   const { gif, sound } = getRankUpMedia();
                   if (gif) {
-                    setCurrentGif(gif);
-                    setLastPlayedGif(gif);
-                    setCurrentRewardData({
-                      quote: `NEW RANK: ${RANKS[newRankIndex].name}`,
-                      xp: pointsGained,
-                      rankIndex: newRankIndex,
-                    });
-                    setShowRewardScreen(true);
+                    queuedReward = {
+                      gif,
+                      rewardData: {
+                        quote: `NEW RANK: ${RANKS[newRankIndex].name}`,
+                        xp: pointsGained,
+                        rankIndex: newRankIndex,
+                      },
+                      isRankUp: true,
+                      rankUpSound: sound,
+                    };
                     rewardTriggered = true;
-
-                    if (settings.enableRewardSounds && sound) {
-                      playSound(sound, settings.volumeRewardMain);
-                    }
                   }
                 } else {
                   const nextGif = gifBuffer.length > 0 ? gifBuffer[0] : '';
                   if (nextGif) {
-                    setCurrentGif(nextGif);
-                    setLastPlayedGif(nextGif);
                     const quote = getNextQuote();
-                    setCurrentRewardData({ quote, xp: pointsGained });
-                    setShowRewardScreen(true);
+                    queuedReward = {
+                      gif: nextGif,
+                      rewardData: { quote, xp: pointsGained },
+                      isRankUp: false,
+                    };
                     rewardTriggered = true;
-
-                    if (settings.enableRewardSounds) {
-                      playSound(SOUND_REWARD_MAIN, settings.volumeRewardMain);
-                      playRandomReward();
-                    }
                   }
                 }
               }
@@ -868,18 +1031,17 @@ const App: React.FC = () => {
               if (settings.enableVisualRewards) {
                 const { gif, sound } = getRankUpMedia();
                 if (gif) {
-                  setCurrentGif(gif);
-                  setLastPlayedGif(gif);
-                  setCurrentRewardData({
-                    quote: `NEW RANK: ${RANKS[newRankIndex].name}`,
-                    xp: 0,
-                    rankIndex: newRankIndex,
-                  });
-                  setShowRewardScreen(true);
+                  queuedReward = {
+                    gif,
+                    rewardData: {
+                      quote: `NEW RANK: ${RANKS[newRankIndex].name}`,
+                      xp: 0,
+                      rankIndex: newRankIndex,
+                    },
+                    isRankUp: true,
+                    rankUpSound: sound,
+                  };
                   rewardTriggered = true;
-                  if (settings.enableRewardSounds && sound) {
-                    playSound(sound, settings.volumeRewardMain);
-                  }
                 }
               }
             } else {
@@ -969,16 +1131,90 @@ const App: React.FC = () => {
           prev === null ? newRankIndex : Math.max(prev, newRankIndex)
         );
         setCompletionTime(finalElapsed);
-        if (rewardTriggered) {
-          setIsVictoryQueued(true);
-        } else {
-          setShowVictoryModal(true);
+      }
+
+      if (completedUnits.hasCompletedUnit) {
+        // First play the Sudoku unit clear animation on the board, then launch Reward / Victory / Break
+        if (unitAnimTimeoutRef.current !== null) {
+          window.clearTimeout(unitAnimTimeoutRef.current);
         }
-      } else if (triggerBreak) {
-        if (rewardTriggered) {
-          setIsBreakQueued(true);
-        } else {
-          startBreakSequence(2000);
+
+        const unitCount =
+          completedUnits.rows.length + completedUnits.cols.length + completedUnits.boxes.length;
+        if (settings.enableRewardSounds) {
+          playUnitClearChime(unitCount, isComplete, settings.volumeRewardMain);
+        }
+
+        setUnitClearAnim({
+          id: Date.now(),
+          originRow: row,
+          originCol: col,
+          rows: completedUnits.rows,
+          cols: completedUnits.cols,
+          boxes: completedUnits.boxes,
+          variant: popNextUnitClearVariant(),
+          isBoardComplete: isComplete,
+        });
+
+        const rewardToOpen = queuedReward;
+        unitAnimTimeoutRef.current = window.setTimeout(() => {
+          unitAnimTimeoutRef.current = null;
+          setUnitClearAnim(null);
+
+          if (rewardToOpen) {
+            setCurrentGif(rewardToOpen.gif);
+            setLastPlayedGif(rewardToOpen.gif);
+            setCurrentRewardData(rewardToOpen.rewardData);
+            if (isComplete) {
+              setIsVictoryQueued(true);
+            } else if (triggerBreak) {
+              setIsBreakQueued(true);
+            }
+            setShowRewardScreen(true);
+
+            if (settings.enableRewardSounds) {
+              if (rewardToOpen.isRankUp && rewardToOpen.rankUpSound) {
+                playSound(rewardToOpen.rankUpSound, settings.volumeRewardMain);
+              } else if (!rewardToOpen.isRankUp) {
+                playSound(SOUND_REWARD_MAIN, settings.volumeRewardMain);
+                playRandomReward();
+              }
+            }
+          } else if (isComplete) {
+            setShowVictoryModal(true);
+          } else if (triggerBreak) {
+            startBreakSequence(800);
+          }
+        }, UNIT_ANIM_DURATION_MS);
+      } else {
+        if (queuedReward) {
+          setCurrentGif(queuedReward.gif);
+          setLastPlayedGif(queuedReward.gif);
+          setCurrentRewardData(queuedReward.rewardData);
+          setShowRewardScreen(true);
+
+          if (settings.enableRewardSounds) {
+            if (queuedReward.isRankUp && queuedReward.rankUpSound) {
+              playSound(queuedReward.rankUpSound, settings.volumeRewardMain);
+            } else if (!queuedReward.isRankUp) {
+              playSound(SOUND_REWARD_MAIN, settings.volumeRewardMain);
+              playRandomReward();
+            }
+          }
+        }
+
+        if (isComplete) {
+          if (rewardTriggered) {
+            setIsVictoryQueued(true);
+          } else {
+            setShowVictoryModal(true);
+          }
+        } else if (triggerBreak) {
+          if (rewardTriggered) {
+            setIsBreakQueued(true);
+          } else {
+            startBreakSequence(2000);
+          }
         }
       }
     },
@@ -987,6 +1223,7 @@ const App: React.FC = () => {
       selectedCell,
       settings,
       isBreakPending,
+      unitClearAnim,
       startBreakSequence,
       gifBuffer,
       isNotesMode,
@@ -1011,6 +1248,7 @@ const App: React.FC = () => {
       isOnBreak ||
       showSettings ||
       isBreakPending ||
+      Boolean(unitClearAnim) ||
       showRewardScreen ||
       showVictoryModal ||
       showNewGameConfirm
@@ -1046,13 +1284,22 @@ const App: React.FC = () => {
     isOnBreak,
     showSettings,
     isBreakPending,
+    unitClearAnim,
     showRewardScreen,
     showVictoryModal,
     showNewGameConfirm,
   ]);
 
   const handleHint = useCallback(() => {
-    if (!gameState || !selectedCell || gameState.isComplete || gameState.hintsRemaining <= 0) return;
+    if (
+      !gameState ||
+      !selectedCell ||
+      gameState.isComplete ||
+      unitClearAnim ||
+      gameState.hintsRemaining <= 0
+    ) {
+      return;
+    }
     const { row, col } = selectedCell;
     const currentCell = gameState.board[row][col];
     const correctVal = gameState.solution[row][col];
@@ -1062,6 +1309,14 @@ const App: React.FC = () => {
       rIdx === row
         ? r.map((c, cIdx) => (cIdx === col ? { ...c, value: correctVal, isNotes: undefined } : c))
         : r
+    );
+
+    const completedUnits = detectCompletedUnits(
+      gameState.board,
+      newBoard,
+      gameState.solution,
+      row,
+      col
     );
 
     let isComplete = true;
@@ -1101,11 +1356,41 @@ const App: React.FC = () => {
         prev === null ? gameState.rankIndex : Math.max(prev, gameState.rankIndex)
       );
       setCompletionTime(finalElapsed);
+    }
+
+    if (completedUnits.hasCompletedUnit) {
+      if (unitAnimTimeoutRef.current !== null) {
+        window.clearTimeout(unitAnimTimeoutRef.current);
+      }
+      const unitCount =
+        completedUnits.rows.length + completedUnits.cols.length + completedUnits.boxes.length;
+      if (settings.enableRewardSounds) {
+        playUnitClearChime(unitCount, isComplete, settings.volumeRewardMain);
+      }
+      setUnitClearAnim({
+        id: Date.now(),
+        originRow: row,
+        originCol: col,
+        rows: completedUnits.rows,
+        cols: completedUnits.cols,
+        boxes: completedUnits.boxes,
+        variant: popNextUnitClearVariant(),
+        isBoardComplete: isComplete,
+      });
+      unitAnimTimeoutRef.current = window.setTimeout(() => {
+        unitAnimTimeoutRef.current = null;
+        setUnitClearAnim(null);
+        if (isComplete) {
+          setShowVictoryModal(true);
+        }
+      }, UNIT_ANIM_DURATION_MS);
+    } else if (isComplete) {
       setShowVictoryModal(true);
     }
-  }, [gameState, selectedCell]);
+  }, [gameState, selectedCell, unitClearAnim, settings.enableRewardSounds, settings.volumeRewardMain]);
 
   const handleUndo = useCallback(() => {
+    if (unitClearAnim) return;
     setGameState((prev) => {
       if (!prev || prev.history.length === 0) return prev;
       const previousBoard = prev.history[prev.history.length - 1];
@@ -1117,7 +1402,7 @@ const App: React.FC = () => {
         activityLog: addLog(prev, 'Undo action performed', 'info'),
       };
     });
-  }, []);
+  }, [unitClearAnim]);
 
   const handleSelectCell = useCallback((row: number, col: number) => {
     setSelectedCell({ row, col });
@@ -1206,10 +1491,14 @@ const App: React.FC = () => {
       !isPaused &&
       !isOnBreak &&
       !isBreakPending &&
+      !unitClearAnim &&
       !showRewardScreen &&
       !showVictoryModal &&
       !showNewGameConfirm
   );
+  const boardTheme = gameState
+    ? DIFFICULTY_THEMES[gameState.difficulty]
+    : DIFFICULTY_THEMES[Difficulty.EASY];
 
   return (
     <>
@@ -1221,51 +1510,78 @@ const App: React.FC = () => {
       )}
 
       {!inMenu && gameState && (
-        <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center relative text-slate-800 overflow-x-hidden">
-          {/* Optimized Background Pattern */}
-          <div className="fixed inset-0 z-0 pointer-events-none opacity-5">
-            <div className="absolute inset-0 bg-[radial-gradient(#000000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div
+          className={`min-h-screen w-full bg-gradient-to-br ${boardTheme.pageBg} flex flex-col items-center relative text-slate-900 overflow-x-hidden transition-colors duration-300`}
+        >
+          {/* Difficulty-Matched Atmospheric Backdrop & Subtle Tactical Grid */}
+          <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+            <div
+              className="absolute inset-0 opacity-50"
+              style={{
+                backgroundImage: `linear-gradient(${boardTheme.gridColor} 1px, transparent 1px), linear-gradient(90deg, ${boardTheme.gridColor} 1px, transparent 1px)`,
+                backgroundSize: '28px 28px',
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: boardTheme.radialBg,
+              }}
+            />
           </div>
 
           {/* GAME UI CONTAINER */}
           <div
-            className={`flex-grow w-full max-w-2xl flex flex-col items-center p-4 pt-6 sm:justify-center relative z-10 ${
+            className={`flex-grow w-full max-w-2xl flex flex-col items-center p-4 pt-5 sm:justify-center relative z-10 ${
               showRewardScreen ? 'hidden' : ''
             }`}
           >
               {/* Top Header */}
-              <div className="w-full flex justify-between items-center mb-6 px-2">
+              <div className="w-full flex justify-between items-center mb-5 px-2">
                 <button
-                  onClick={() => setInMenu(true)}
-                  className="p-2 -ml-2 text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                  onClick={() => {
+                    if (unitAnimTimeoutRef.current !== null) {
+                      window.clearTimeout(unitAnimTimeoutRef.current);
+                      unitAnimTimeoutRef.current = null;
+                    }
+                    setUnitClearAnim(null);
+                    setInMenu(true);
+                  }}
+                  aria-label="Back to menu"
+                  className={`p-2 -ml-2 text-slate-700 ${boardTheme.headerButtonHover} rounded-lg transition-colors duration-150`}
                 >
-                  <ChevronLeft size={32} />
+                  <ChevronLeft size={30} />
                 </button>
-                <div className="text-2xl font-bold text-slate-800 tracking-tight">
-                  {gameState.difficulty}
+                <div className="flex flex-col items-center">
+                  <span className="font-display text-2xl sm:text-3xl font-black uppercase tracking-[0.14em] text-slate-900 leading-none">
+                    {gameState.difficulty}
+                  </span>
                 </div>
                 <button
                   onClick={() => {
                     setIsPaused(true);
                     setShowSettings(true);
                   }}
-                  className="p-2 -mr-2 text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                  aria-label="Settings"
+                  className={`p-2 -mr-2 text-slate-700 ${boardTheme.headerButtonHover} rounded-lg transition-colors duration-150`}
                 >
-                  <Settings size={28} />
+                  <Settings size={26} />
                 </button>
               </div>
 
               {/* Stats Bar & Rank Display */}
-              <div className="w-full flex gap-3 px-2 mb-4 items-center">
-                {/* Rank Card */}
-                <div className="flex flex-col items-center justify-center min-w-[96px] hover:scale-105 transition-transform duration-300 group">
+              <div className="w-full flex gap-3 px-1 mb-4 items-center">
+                {/* Difficulty-Matched Rank Crest Card */}
+                <div
+                  className={`flex flex-col items-center justify-center min-w-[104px] border rounded-xl px-2.5 py-2 ${boardTheme.cardSurface} hover:scale-105 transition-transform duration-200 group`}
+                >
                   <span
-                    className={`text-[12px] font-black uppercase text-center leading-none ${currentRank.color} tracking-tighter mb-1 relative z-10 drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]`}
+                    className={`font-display text-xs sm:text-sm font-black uppercase text-center leading-none ${currentRank.lightColor} tracking-wider mb-1.5 relative z-10`}
                   >
                     {currentRank.name}
                   </span>
                   <div
-                    className={`${currentRank.orientation === 'vertical' ? 'w-10 h-14' : 'w-16 h-9'} rounded-md overflow-hidden shadow-[0_0_30px_5px] ${currentRank.shadow} border-[1.5px] border-slate-400 transition-all duration-300 bg-white flex items-center justify-center`}
+                    className={`${currentRank.orientation === 'vertical' ? 'w-10 h-14' : 'w-16 h-9'} rounded-md overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.14)] ${currentRank.shadow} border ${boardTheme.rankImgBorder} transition-all duration-300 bg-slate-100 flex items-center justify-center`}
                   >
                     {!rankImgFailed ? (
                       <img
@@ -1277,31 +1593,31 @@ const App: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Trophy size={20} className={currentRank.color} />
+                      <Trophy size={20} className={currentRank.lightColor} />
                     )}
                   </div>
                   {rankProgressInfo && (
                     <div className="w-20 mt-1.5 flex flex-col items-center">
-                      <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
                             rankProgressInfo.isMaxRank
-                              ? 'bg-gradient-to-r from-amber-400 to-emerald-500'
+                              ? boardTheme.rankBarGrad
                               : rankProgressInfo.isAwaitingCompletion
                                 ? rankProgressInfo.isMaxRankLockedOut
-                                  ? 'bg-rose-400'
-                                  : 'bg-amber-500'
-                                : 'bg-blue-600'
+                                  ? 'bg-rose-600'
+                                  : boardTheme.rankAwaitColor
+                                : boardTheme.rankBarGrad
                           }`}
                           style={{ width: `${rankProgressInfo.progressPercent}%` }}
                         />
                       </div>
                       <span
-                        className={`text-[10px] font-mono font-bold tabular-nums mt-0.5 leading-none ${
+                        className={`text-[10px] font-mono font-bold tabular-nums mt-1 leading-none ${
                           rankProgressInfo.isAwaitingCompletion &&
                           rankProgressInfo.isMaxRankLockedOut
-                            ? 'text-rose-500'
-                            : 'text-slate-500'
+                            ? 'text-rose-600'
+                            : 'text-slate-600'
                         }`}
                       >
                         {rankProgressInfo.isMaxRank
@@ -1317,49 +1633,51 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Main Stats Grid */}
-                <div className="flex-1 grid grid-cols-4 gap-0 text-sm text-slate-500 font-medium bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
-                  <div className="flex flex-col items-center justify-center border-r border-slate-100">
-                    <div className="flex items-center gap-1 text-amber-500 mb-1">
-                      <Zap size={16} fill="currentColor" />
+                <div
+                  className={`flex-1 grid grid-cols-4 gap-0 text-sm font-medium p-2.5 rounded-xl border ${boardTheme.cardSurface}`}
+                >
+                  <div className="flex flex-col items-center justify-center border-r border-slate-200/80">
+                    <div className={`flex items-center gap-1 ${boardTheme.scoreIconText} mb-0.5`}>
+                      <Zap size={14} fill="currentColor" />
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">
                         Score
                       </span>
                     </div>
-                    <span className="text-lg sm:text-xl font-bold text-slate-700">
+                    <span className="text-base sm:text-xl font-mono font-extrabold text-slate-900 tabular-nums">
                       {gameState.score}
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center border-r border-slate-100">
-                    <div className="flex items-center gap-1 text-emerald-500 mb-1">
-                      <CheckCircle2 size={16} />
+                  <div className="flex flex-col items-center justify-center border-r border-slate-200/80">
+                    <div className="flex items-center gap-1 text-emerald-600 mb-0.5">
+                      <CheckCircle2 size={14} />
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">
                         Hits
                       </span>
                     </div>
-                    <span className="text-lg sm:text-xl font-bold text-slate-700">
+                    <span className="text-base sm:text-xl font-mono font-extrabold text-slate-900 tabular-nums">
                       {gameState.hits}
                     </span>
                   </div>
-                  <div className="flex flex-col items-center justify-center border-r border-slate-100">
-                    <div className="flex items-center gap-1 text-rose-500 mb-1">
-                      <XCircle size={16} />
+                  <div className="flex flex-col items-center justify-center border-r border-slate-200/80">
+                    <div className="flex items-center gap-1 text-rose-600 mb-0.5">
+                      <XCircle size={14} />
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">
                         Err
                       </span>
                     </div>
-                    <span className="text-lg sm:text-xl font-bold text-slate-700">
+                    <span className="text-base sm:text-xl font-mono font-extrabold text-slate-900 tabular-nums">
                       {gameState.mistakes}
                     </span>
                   </div>
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-center gap-1 text-blue-500 mb-1">
-                      <Calculator size={16} />
+                    <div className={`flex items-center gap-1 ${boardTheme.totalIconText} mb-0.5`}>
+                      <Calculator size={14} />
                       <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">
                         Total
                       </span>
                     </div>
-                    <span className="text-lg sm:text-xl font-bold text-slate-700">
+                    <span className="text-base sm:text-xl font-mono font-extrabold text-slate-900 tabular-nums">
                       {gameState.hits + gameState.mistakes}
                     </span>
                   </div>
@@ -1368,34 +1686,44 @@ const App: React.FC = () => {
 
               {/* Game Board (Memoized) */}
               <div
-                className={`p-1 select-none w-full flex justify-center transition-opacity duration-300 ${isPaused || isBreakPending || showNewGameConfirm ? 'opacity-0' : 'opacity-100'}`}
+                className={`p-1 select-none w-full flex justify-center transition-opacity duration-200 ${isPaused || isBreakPending || showNewGameConfirm ? 'opacity-0' : 'opacity-100'}`}
               >
                 <SudokuBoard
                   board={gameState.board}
                   solution={gameState.solution}
                   selectedCell={selectedCell}
+                  unitClearAnim={unitClearAnim}
+                  difficulty={gameState.difficulty}
                   onSelectCell={handleSelectCell}
                 />
               </div>
 
               {isPaused && (
                 <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                  <div className="text-3xl font-bold text-slate-400">PAUSED</div>
+                  <div
+                    className={`font-display text-4xl font-black uppercase tracking-[0.25em] ${boardTheme.pausedText}`}
+                  >
+                    PAUSED
+                  </div>
                 </div>
               )}
 
               {gameState.isComplete && !showVictoryModal && !showRewardScreen && (
-                <div className="w-full mt-3 px-2">
-                  <div className="w-full bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-sm">
+                <div className="w-full mt-3 px-1">
+                  <div
+                    className={`w-full bg-white/95 border ${boardTheme.solvedBannerBorder} rounded-xl p-3 flex items-center justify-between gap-3 shadow-md`}
+                  >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                      <div
+                        className={`w-9 h-9 rounded-lg ${boardTheme.solvedTrophyBg} flex items-center justify-center shrink-0`}
+                      >
                         <Trophy size={18} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-extrabold text-emerald-950 truncate">
+                        <p className="text-sm font-extrabold text-slate-900 truncate">
                           Puzzle Solved!
                         </p>
-                        <p className="text-xs text-emerald-700 font-medium tabular-nums">
+                        <p className="text-xs text-slate-600 font-mono tabular-nums">
                           {gameState.score.toLocaleString()} XP · {formatTime(completionTime)} ({completionTime.toLocaleString()}s)
                         </p>
                       </div>
@@ -1403,13 +1731,13 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => setShowVictoryModal(true)}
-                        className="px-3 py-2 bg-white border border-emerald-200 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
+                        className="px-3 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
                       >
                         View Summary
                       </button>
                       <button
                         onClick={() => startNewSession(gameState.difficulty, false)}
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
+                        className={`px-3 py-2 ${boardTheme.playAgainBtn} text-xs font-extrabold rounded-lg transition-colors whitespace-nowrap`}
                       >
                         Play Again
                       </button>
@@ -1426,19 +1754,24 @@ const App: React.FC = () => {
                   onHint={handleHint}
                   isNotesMode={isNotesMode}
                   hintsRemaining={gameState.hintsRemaining}
+                  difficulty={gameState.difficulty}
                 />
               </div>
 
               <div className={`w-full ${isPaused || isBreakPending ? 'invisible' : ''}`}>
-                <NumberPad onNumberClick={handleInput} counts={completedCounts} />
+                <NumberPad
+                  onNumberClick={handleInput}
+                  counts={completedCounts}
+                  difficulty={gameState.difficulty}
+                />
               </div>
 
               {/* Footer */}
-              <div className="w-full mt-6 mb-2 grid grid-cols-3 gap-3 px-1 items-center">
+              <div className="w-full mt-5 mb-2 grid grid-cols-3 gap-3 px-1 items-center">
                 {/* Left: New Game */}
                 <button
                   onClick={() => requestNewGame(gameState.difficulty)}
-                  className="col-span-1 bg-slate-800 text-white py-2 rounded-xl font-bold text-xs hover:bg-slate-700 transition-colors shadow-md active:scale-95 flex items-center justify-center gap-2"
+                  className={`col-span-1 ${boardTheme.newGameBtn} py-2 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap`}
                 >
                   <RotateCcw size={14} />
                   New Game
@@ -1451,19 +1784,22 @@ const App: React.FC = () => {
                   isPaused={isPaused}
                   onTogglePause={handleTogglePause}
                   elapsedRef={elapsedSecondsRef}
+                  difficulty={gameState.difficulty}
                 />
 
                 {/* Right: Operations Counter & Link */}
-                <div className="col-span-1 flex flex-row items-center justify-center gap-2 bg-white border border-slate-200 py-2 rounded-xl shadow-sm relative">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">
+                <div
+                  className={`col-span-1 flex flex-row items-center justify-center gap-2 bg-white/95 border ${boardTheme.cardBorder} py-2 rounded-lg shadow-[0_2px_6px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] relative`}
+                >
+                  <div className="flex items-center gap-1 font-mono tabular-nums">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-0.5">
                       OPS
                     </span>
-                    <span className="text-sm font-bold text-blue-600">
+                    <span className={`text-sm font-extrabold ${boardTheme.opsCountText}`}>
                       {gameState.operationsCount}
                     </span>
                     <span className="text-slate-300 font-light text-xs">/</span>
-                    <span className="text-sm font-bold text-slate-500">
+                    <span className="text-sm font-bold text-slate-800">
                       {settings.operationsTarget}
                     </span>
                   </div>
@@ -1471,7 +1807,7 @@ const App: React.FC = () => {
                   {/* Link Button */}
                   <button
                     onClick={copyLastGifLink}
-                    className="ml-2 p-1 bg-slate-100 hover:bg-blue-100 rounded-md text-slate-400 hover:text-blue-600 transition-colors"
+                    className={`ml-1 p-1 ${boardTheme.linkBtn} rounded-md transition-colors duration-150`}
                     title="Copy Last GIF Link"
                   >
                     <LinkIcon size={12} />
@@ -1481,10 +1817,14 @@ const App: React.FC = () => {
 
               {/* Activity Log - Conditionally Rendered */}
               {settings.showActivityLog && (
-                <div className="w-full mt-4 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex flex-col max-h-48 min-h-24">
-                  <div className="bg-slate-200 px-3 py-1 flex items-center gap-2">
-                    <History size={12} className="text-slate-500" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">
+                <div
+                  className={`w-full mt-4 bg-white/95 rounded-xl border ${boardTheme.cardBorder} overflow-hidden flex flex-col max-h-48 min-h-24 shadow-sm`}
+                >
+                  <div
+                    className={`${boardTheme.logHeaderBg} px-3 py-1.5 flex items-center gap-2 border-b`}
+                  >
+                    <History size={12} className={boardTheme.logIconText} />
+                    <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                       Activity Log
                     </span>
                   </div>
@@ -1495,7 +1835,7 @@ const App: React.FC = () => {
                     {gameState.activityLog.map((log) => (
                       <div
                         key={log.id}
-                        className="text-[10px] font-mono flex gap-2 items-start border-b border-slate-200/50 pb-1 last:border-0 last:pb-0"
+                        className="text-[10px] font-mono flex gap-2 items-start border-b border-slate-100 pb-1 last:border-0 last:pb-0"
                       >
                         <span className="text-slate-400 shrink-0">{log.timestamp}</span>
                         <span
@@ -1503,9 +1843,9 @@ const App: React.FC = () => {
                             break-words leading-tight
                             ${log.type === 'error' ? 'text-rose-600 font-bold' : ''}
                             ${log.type === 'success' ? 'text-emerald-600' : ''}
-                            ${log.type === 'rank-up' ? 'text-purple-600 font-black tracking-wide' : ''}
-                            ${log.type === 'warning' ? 'text-orange-500' : ''}
-                            ${log.type === 'info' ? 'text-slate-600' : ''}
+                            ${log.type === 'rank-up' ? boardTheme.logRankUpText : ''}
+                            ${log.type === 'warning' ? 'text-amber-600' : ''}
+                            ${log.type === 'info' ? 'text-slate-700' : ''}
                           `}
                         >
                           {log.message}
