@@ -45,6 +45,7 @@ import GameTimer, { formatTime } from './components/GameTimer';
 import VictoryModal from './components/VictoryModal';
 import RewardOverlay from './components/RewardOverlay';
 import BreakOverlay from './components/BreakOverlay';
+import RankGuideModal from './components/RankGuideModal';
 import {
   Settings,
   ChevronLeft,
@@ -64,12 +65,16 @@ import {
   Save,
   Download,
   Eye,
+  EyeOff,
   Music,
   X,
   ToggleLeft,
   ToggleRight,
   AlertTriangle,
   Trophy,
+  Search,
+  ClipboardPaste,
+  Power,
 } from 'lucide-react';
 
 const GIF_BUFFER_SIZE = 4;
@@ -254,7 +259,7 @@ const App: React.FC = () => {
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);
 
   // Non-blocking feedback states
-  const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [showCopyFeedback, setShowCopyFeedback] = useState<{ type: 'gif' | 'sound' } | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Settings & Break Logic
@@ -271,6 +276,7 @@ const App: React.FC = () => {
     showRewardTimerBar: false,
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [showRankGuide, setShowRankGuide] = useState(false);
   const [showRewardConfig, setShowRewardConfig] = useState(false);
   const [viewingList, setViewingList] = useState<'gifs' | 'sounds' | null>(null);
   const [isOnBreak, setIsOnBreak] = useState(false);
@@ -282,6 +288,20 @@ const App: React.FC = () => {
   // Resource Management State
   const [gifList, setGifList] = useState<string[]>(INITIAL_REWARD_GIFS);
   const [soundList, setSoundList] = useState<string[]>(INITIAL_REWARD_SOUNDS);
+  const [disabledGifs, setDisabledGifs] = useState<Set<string>>(() => new Set());
+  const [disabledSounds, setDisabledSounds] = useState<Set<string>>(() => new Set());
+  const [findUrlInput, setFindUrlInput] = useState('');
+  const [listSearchQuery, setListSearchQuery] = useState('');
+  const [highlightedUrl, setHighlightedUrl] = useState<string | null>(null);
+
+  const activeGifList = useMemo(
+    () => gifList.filter((url) => !disabledGifs.has(url)),
+    [gifList, disabledGifs]
+  );
+  const activeSoundList = useMemo(
+    () => soundList.filter((url) => !disabledSounds.has(url)),
+    [soundList, disabledSounds]
+  );
 
   // Rank Up Playlists State
   const [rankUpGifs, setRankUpGifs] = useState<string[]>(() => [...RANK_UP_GIFS]);
@@ -298,6 +318,7 @@ const App: React.FC = () => {
   const [rankImgFailed, setRankImgFailed] = useState(false);
   const [currentGif, setCurrentGif] = useState<string>('');
   const [lastPlayedGif, setLastPlayedGif] = useState<string>('');
+  const [lastPlayedSound, setLastPlayedSound] = useState<string>('');
   const [gifBuffer, setGifBuffer] = useState<string[]>([]);
   const [currentRewardData, setCurrentRewardData] = useState<{
     quote: string;
@@ -328,8 +349,9 @@ const App: React.FC = () => {
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
-  // Refs for scrolling log
+  // Refs for scrolling log & highlighted reward list item
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const highlightedItemRef = useRef<HTMLDivElement | null>(null);
 
   // Input Refs for Configuration
   const newGifInputRef = useRef<HTMLInputElement>(null);
@@ -372,20 +394,47 @@ const App: React.FC = () => {
     }
   }, [gameState?.activityLog, settings.showActivityLog]);
 
+  // Scroll highlighted GIF/Audio card into view when opening the list from URL lookup
+  useEffect(() => {
+    if (!viewingList || !highlightedUrl) return;
+    const rafId = window.requestAnimationFrame(() => {
+      highlightedItemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [viewingList, highlightedUrl]);
+
   // --- OPTIMIZED BUFFER & IMAGE PRELOADER ---
   const pickRandomGif = useCallback(
     (excludeList: string[]) => {
-      const available = gifList.filter((g) => !excludeList.includes(g));
-      const pool = available.length > 0 ? available : gifList;
+      const available = activeGifList.filter((g) => !excludeList.includes(g));
+      const pool = available.length > 0 ? available : activeGifList;
       if (pool.length === 0) return '';
       return pool[Math.floor(Math.random() * pool.length)];
     },
-    [gifList]
+    [activeGifList]
   );
+
+  // Purge disabled or deleted GIFs from preloaded buffer immediately
+  useEffect(() => {
+    const activeSet = new Set(activeGifList);
+    setGifBuffer((prev) => {
+      const next = prev.filter((url) => activeSet.has(url));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [activeGifList]);
+
+  // Purge disabled or deleted sounds from audio shuffle bag immediately
+  useEffect(() => {
+    const activeSet = new Set(activeSoundList);
+    setRewardPlaylist((prev) => {
+      const next = prev.filter((url) => activeSet.has(url));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [activeSoundList]);
 
   useEffect(() => {
     if (!settings.enableVisualRewards) return;
-    if (gifBuffer.length < GIF_BUFFER_SIZE && gifList.length > 0) {
+    if (gifBuffer.length < GIF_BUFFER_SIZE && activeGifList.length > 0) {
       const needed = GIF_BUFFER_SIZE - gifBuffer.length;
       const newGifs: string[] = [];
       const currentExcludes = [...gifBuffer];
@@ -402,7 +451,7 @@ const App: React.FC = () => {
         setGifBuffer((prev) => [...prev, ...newGifs]);
       }
     }
-  }, [gifBuffer, gifList.length, pickRandomGif, settings.enableVisualRewards]);
+  }, [gifBuffer, activeGifList.length, pickRandomGif, settings.enableVisualRewards]);
 
   // Deduplicated JS Image preloader (replaces duplicate hidden DOM elements)
   const preloadImageUrl = useCallback((url: string) => {
@@ -487,17 +536,21 @@ const App: React.FC = () => {
   const closeListView = useCallback(() => {
     stopPreviewAudio();
     setViewingList(null);
+    setListSearchQuery('');
+    setHighlightedUrl(null);
   }, [stopPreviewAudio]);
 
   const playRandomReward = useCallback(() => {
-    let currentList = rewardPlaylist.length > 0 ? [...rewardPlaylist] : [...soundList];
+    const activePool = rewardPlaylist.filter((url) => !disabledSounds.has(url));
+    const currentList = activePool.length > 0 ? [...activePool] : [...activeSoundList];
     if (currentList.length === 0) return;
     const randomIndex = Math.floor(Math.random() * currentList.length);
     const soundUrl = currentList[randomIndex];
+    setLastPlayedSound(soundUrl);
     playSound(soundUrl, settings.volumeRewardList);
     currentList.splice(randomIndex, 1);
     setRewardPlaylist(currentList);
-  }, [rewardPlaylist, soundList, playSound, settings.volumeRewardList]);
+  }, [rewardPlaylist, disabledSounds, activeSoundList, playSound, settings.volumeRewardList]);
 
   // --- QUOTE LOGIC ---
   const getNextQuote = useCallback(() => {
@@ -675,13 +728,136 @@ const App: React.FC = () => {
     }
   }, [showToast]);
 
-  const handleRemoveSpecific = useCallback((url: string, type: 'gif' | 'sound') => {
-    if (type === 'gif') {
-      setGifList((prev) => prev.filter((item) => item !== url));
-    } else {
-      setSoundList((prev) => prev.filter((item) => item !== url));
+  const handleToggleDisable = useCallback(
+    (url: string, type: 'gif' | 'sound') => {
+      if (type === 'gif') {
+        const willDisable = !disabledGifs.has(url);
+        setDisabledGifs((prev) => {
+          const next = new Set(prev);
+          if (next.has(url)) next.delete(url);
+          else next.add(url);
+          return next;
+        });
+        if (willDisable) {
+          setGifBuffer((prev) => prev.filter((item) => item !== url));
+          showToast('GIF disabled (kept in list).');
+        } else {
+          showToast('GIF enabled.');
+        }
+      } else {
+        const willDisable = !disabledSounds.has(url);
+        setDisabledSounds((prev) => {
+          const next = new Set(prev);
+          if (next.has(url)) next.delete(url);
+          else next.add(url);
+          return next;
+        });
+        if (willDisable) {
+          setRewardPlaylist((prev) => prev.filter((item) => item !== url));
+          showToast('Audio disabled (kept in list).');
+        } else {
+          showToast('Audio enabled.');
+        }
+      }
+    },
+    [disabledGifs, disabledSounds, showToast]
+  );
+
+  const handleRemoveSpecific = useCallback(
+    (url: string, type: 'gif' | 'sound') => {
+      if (type === 'gif') {
+        setGifList((prev) => prev.filter((item) => item !== url));
+        setDisabledGifs((prev) => {
+          if (!prev.has(url)) return prev;
+          const next = new Set(prev);
+          next.delete(url);
+          return next;
+        });
+        setGifBuffer((prev) => prev.filter((item) => item !== url));
+      } else {
+        setSoundList((prev) => prev.filter((item) => item !== url));
+        setDisabledSounds((prev) => {
+          if (!prev.has(url)) return prev;
+          const next = new Set(prev);
+          next.delete(url);
+          return next;
+        });
+        setRewardPlaylist((prev) => prev.filter((item) => item !== url));
+      }
+      setHighlightedUrl((prev) => (prev === url ? null : prev));
+    },
+    []
+  );
+
+  const findUrlMatch = (list: string[], query: string): string | null => {
+    const exact = list.find((u) => u === query);
+    if (exact) return exact;
+    const lower = query.toLowerCase();
+    const caseInsensitiveExact = list.find((u) => u.toLowerCase() === lower);
+    if (caseInsensitiveExact) return caseInsensitiveExact;
+    return list.find((u) => u.toLowerCase().includes(lower)) || null;
+  };
+
+  const handleJumpToUrl = useCallback(
+    (rawInput?: string) => {
+      const raw = (rawInput ?? findUrlInput).trim().replace(/^["']+|["']+$/g, '');
+      if (!raw) {
+        showToast('Paste or enter a URL first.', 'error');
+        return;
+      }
+
+      const matchedGif = findUrlMatch(gifList, raw);
+      if (matchedGif) {
+        setListSearchQuery('');
+        setHighlightedUrl(matchedGif);
+        setViewingList('gifs');
+        return;
+      }
+
+      const matchedSound = findUrlMatch(soundList, raw);
+      if (matchedSound) {
+        setListSearchQuery('');
+        setHighlightedUrl(matchedSound);
+        setViewingList('sounds');
+        return;
+      }
+
+      showToast('URL not found in your GIF or Audio lists.', 'error');
+    },
+    [findUrlInput, gifList, soundList, showToast]
+  );
+
+  const handlePasteAndJump = useCallback(async () => {
+    try {
+      const clipText = await navigator.clipboard.readText();
+      const cleaned = clipText.trim().replace(/^["']+|["']+$/g, '');
+      if (!cleaned) {
+        showToast('Clipboard is empty.', 'error');
+        return;
+      }
+      setFindUrlInput(cleaned);
+      handleJumpToUrl(cleaned);
+    } catch {
+      showToast('Clipboard blocked — paste manually in the box.', 'error');
     }
-  }, []);
+  }, [handleJumpToUrl, showToast]);
+
+  const handlePasteIntoListSearch = useCallback(async () => {
+    try {
+      const clipText = await navigator.clipboard.readText();
+      const cleaned = clipText.trim().replace(/^["']+|["']+$/g, '');
+      if (!cleaned) {
+        showToast('Clipboard is empty.', 'error');
+        return;
+      }
+      setListSearchQuery(cleaned);
+      const currentList = viewingList === 'gifs' ? gifList : soundList;
+      const match = findUrlMatch(currentList, cleaned);
+      setHighlightedUrl(match);
+    } catch {
+      showToast('Clipboard blocked — paste manually in the box.', 'error');
+    }
+  }, [viewingList, gifList, soundList, showToast]);
 
   const copyLastGifLink = useCallback(() => {
     if (lastPlayedGif) {
@@ -690,20 +866,42 @@ const App: React.FC = () => {
           prev
             ? {
                 ...prev,
-                activityLog: addLog(prev, `Link Copied: ${lastPlayedGif}`, 'info'),
+                activityLog: addLog(prev, `GIF Link Copied: ${lastPlayedGif}`, 'info'),
               }
             : null
         );
-        setShowCopyFeedback(true);
+        setShowCopyFeedback({ type: 'gif' });
         if (copyFeedbackTimeoutRef.current !== null) {
           window.clearTimeout(copyFeedbackTimeoutRef.current);
         }
-        copyFeedbackTimeoutRef.current = window.setTimeout(() => setShowCopyFeedback(false), 4000);
+        copyFeedbackTimeoutRef.current = window.setTimeout(() => setShowCopyFeedback(null), 3500);
       });
     } else {
       showToast('No GIF has been played yet.', 'error');
     }
   }, [lastPlayedGif, showToast]);
+
+  const copyLastSoundLink = useCallback(() => {
+    if (lastPlayedSound) {
+      navigator.clipboard.writeText(lastPlayedSound).then(() => {
+        setGameState((prev) =>
+          prev
+            ? {
+                ...prev,
+                activityLog: addLog(prev, `Audio Link Copied: ${lastPlayedSound}`, 'info'),
+              }
+            : null
+        );
+        setShowCopyFeedback({ type: 'sound' });
+        if (copyFeedbackTimeoutRef.current !== null) {
+          window.clearTimeout(copyFeedbackTimeoutRef.current);
+        }
+        copyFeedbackTimeoutRef.current = window.setTimeout(() => setShowCopyFeedback(null), 3500);
+      });
+    } else {
+      showToast('No audio reward has played yet.', 'error');
+    }
+  }, [lastPlayedSound, showToast]);
 
   // --- Game Logic ---
   const startNewSession = useCallback((difficulty: Difficulty, keepProgress: boolean) => {
@@ -809,6 +1007,7 @@ const App: React.FC = () => {
     setIsBreakPending(false);
     setIsBreakQueued(false);
     setShowRewardScreen(false);
+    setShowRankGuide(false);
     setIsNotesMode(false);
     setShowNewGameConfirm(false);
     setPendingDifficulty(null);
@@ -1247,6 +1446,7 @@ const App: React.FC = () => {
       isPaused ||
       isOnBreak ||
       showSettings ||
+      showRankGuide ||
       isBreakPending ||
       Boolean(unitClearAnim) ||
       showRewardScreen ||
@@ -1492,6 +1692,8 @@ const App: React.FC = () => {
       !isOnBreak &&
       !isBreakPending &&
       !unitClearAnim &&
+      !showSettings &&
+      !showRankGuide &&
       !showRewardScreen &&
       !showVictoryModal &&
       !showNewGameConfirm
@@ -1571,9 +1773,13 @@ const App: React.FC = () => {
 
               {/* Stats Bar & Rank Display */}
               <div className="w-full flex gap-3 px-1 mb-4 items-center">
-                {/* Difficulty-Matched Rank Crest Card */}
-                <div
-                  className={`flex flex-col items-center justify-center min-w-[104px] border rounded-xl px-2.5 py-2 ${boardTheme.cardSurface} hover:scale-105 transition-transform duration-200 group`}
+                {/* Difficulty-Matched Rank Crest Card (Click to view ranks by difficulty) */}
+                <button
+                  type="button"
+                  onClick={() => setShowRankGuide(true)}
+                  aria-label={`Current rank ${currentRank.name}. Click to view ranks available per difficulty.`}
+                  title="Click to view available ranks per difficulty"
+                  className={`flex flex-col items-center justify-center min-w-[104px] border rounded-xl px-2.5 py-2 ${boardTheme.cardSurface} hover:scale-105 active:scale-100 transition-transform duration-200 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500`}
                 >
                   <span
                     className={`font-display text-xs sm:text-sm font-black uppercase text-center leading-none ${currentRank.lightColor} tracking-wider mb-1.5 relative z-10`}
@@ -1630,7 +1836,7 @@ const App: React.FC = () => {
                       </span>
                     </div>
                   )}
-                </div>
+                </button>
 
                 {/* Main Stats Grid */}
                 <div
@@ -1787,31 +1993,42 @@ const App: React.FC = () => {
                   difficulty={gameState.difficulty}
                 />
 
-                {/* Right: Operations Counter & Link */}
+                {/* Right: Operations Counter & Quick Copy URLs */}
                 <div
-                  className={`col-span-1 flex flex-row items-center justify-center gap-2 bg-white/95 border ${boardTheme.cardBorder} py-2 rounded-lg shadow-[0_2px_6px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] relative`}
+                  className={`col-span-1 flex flex-row items-center justify-center gap-1 sm:gap-1.5 bg-white/95 border ${boardTheme.cardBorder} py-2 px-1.5 rounded-lg shadow-[0_2px_6px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] relative`}
                 >
-                  <div className="flex items-center gap-1 font-mono tabular-nums">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-0.5">
+                  <div className="flex items-center gap-0.5 sm:gap-1 font-mono tabular-nums">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider sm:tracking-widest mr-0.5">
                       OPS
                     </span>
-                    <span className={`text-sm font-extrabold ${boardTheme.opsCountText}`}>
+                    <span className={`text-xs sm:text-sm font-extrabold ${boardTheme.opsCountText}`}>
                       {gameState.operationsCount}
                     </span>
                     <span className="text-slate-300 font-light text-xs">/</span>
-                    <span className="text-sm font-bold text-slate-800">
+                    <span className="text-xs sm:text-sm font-bold text-slate-800">
                       {settings.operationsTarget}
                     </span>
                   </div>
 
-                  {/* Link Button */}
-                  <button
-                    onClick={copyLastGifLink}
-                    className={`ml-1 p-1 ${boardTheme.linkBtn} rounded-md transition-colors duration-150`}
-                    title="Copy Last GIF Link"
-                  >
-                    <LinkIcon size={12} />
-                  </button>
+                  {/* Quick Copy Buttons: Last GIF & Last Audio */}
+                  <div className="flex items-center gap-1 ml-0.5">
+                    <button
+                      onClick={copyLastGifLink}
+                      className={`p-1 ${boardTheme.linkBtn} rounded-md transition-colors duration-150`}
+                      title="Copy Last GIF URL"
+                      aria-label="Copy Last GIF URL"
+                    >
+                      <ImageIcon size={12} />
+                    </button>
+                    <button
+                      onClick={copyLastSoundLink}
+                      className={`p-1 ${boardTheme.linkBtn} rounded-md transition-colors duration-150`}
+                      title="Copy Last Audio URL"
+                      aria-label="Copy Last Audio URL"
+                    >
+                      <Music size={12} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1880,11 +2097,12 @@ const App: React.FC = () => {
             <div className="fixed inset-0 z-[120] flex items-center justify-center pointer-events-none">
               <div className="bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl flex flex-col items-center text-center border border-slate-700 w-max max-w-sm pointer-events-auto">
                 <span className="font-bold text-sm text-emerald-400 flex items-center gap-2 mb-2">
-                  <CheckCircle2 size={20} /> Link Copied!
+                  <CheckCircle2 size={20} />{' '}
+                  {showCopyFeedback.type === 'gif' ? 'GIF Link Copied!' : 'Audio Link Copied!'}
                 </span>
                 <span className="text-xs text-slate-400 leading-tight">
                   Go to <span className="font-bold text-slate-300">Settings &gt; Manage Rewards</span>{' '}
-                  to remove this GIF.
+                  and paste the URL to jump right to it to disable or delete it.
                 </span>
               </div>
             </div>
@@ -2161,18 +2379,81 @@ const App: React.FC = () => {
                   <ChevronLeft size={24} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto space-y-8 pr-2">
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+                {/* Direct URL Lookup / Paste & Jump */}
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-200">
+                  <h3 className="font-bold text-base text-slate-800 flex items-center gap-2 mb-1">
+                    <LinkIcon size={18} className="text-indigo-600" /> Find GIF or Audio by URL
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Paste a URL copied from the game screen to jump straight to it in the list and
+                    disable or delete it.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={findUrlInput}
+                        onChange={(e) => setFindUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleJumpToUrl();
+                          }
+                        }}
+                        placeholder="Paste GIF or Audio URL here..."
+                        className="w-full border border-slate-300 rounded-lg pl-3 pr-8 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      {findUrlInput && (
+                        <button
+                          onClick={() => setFindUrlInput('')}
+                          aria-label="Clear URL"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={handlePasteAndJump}
+                        className="px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                        title="Paste from clipboard and jump to item"
+                      >
+                        <ClipboardPaste size={15} /> Paste &amp; Go
+                      </button>
+                      <button
+                        onClick={() => handleJumpToUrl()}
+                        className="px-3.5 py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs hover:bg-indigo-700 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                      >
+                        <Search size={15} /> Go
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* GIF Section */}
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-lg text-purple-700 flex items-center gap-2">
-                      <ImageIcon size={20} /> GIFs ({gifList.length})
-                    </h3>
+                    <div>
+                      <h3 className="font-bold text-lg text-purple-700 flex items-center gap-2">
+                        <ImageIcon size={20} /> GIFs ({activeGifList.length}/{gifList.length})
+                      </h3>
+                      {disabledGifs.size > 0 && (
+                        <p className="text-[11px] text-amber-600 font-semibold mt-0.5">
+                          {disabledGifs.size} disabled
+                        </p>
+                      )}
+                    </div>
                     <button
-                      onClick={() => setViewingList('gifs')}
+                      onClick={() => {
+                        setListSearchQuery('');
+                        setHighlightedUrl(null);
+                        setViewingList('gifs');
+                      }}
                       className="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold hover:bg-purple-200 transition-colors flex items-center gap-1"
                     >
-                      <Eye size={12} /> View & Edit List
+                      <Eye size={12} /> View &amp; Edit List
                     </button>
                   </div>
                   <div className="mb-4">
@@ -2216,14 +2497,25 @@ const App: React.FC = () => {
                 {/* Sound Section */}
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-lg text-amber-600 flex items-center gap-2">
-                      <Music size={20} /> Sounds ({soundList.length})
-                    </h3>
+                    <div>
+                      <h3 className="font-bold text-lg text-amber-600 flex items-center gap-2">
+                        <Music size={20} /> Sounds ({activeSoundList.length}/{soundList.length})
+                      </h3>
+                      {disabledSounds.size > 0 && (
+                        <p className="text-[11px] text-amber-600 font-semibold mt-0.5">
+                          {disabledSounds.size} disabled
+                        </p>
+                      )}
+                    </div>
                     <button
-                      onClick={() => setViewingList('sounds')}
+                      onClick={() => {
+                        setListSearchQuery('');
+                        setHighlightedUrl(null);
+                        setViewingList('sounds');
+                      }}
                       className="text-xs bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-200 transition-colors flex items-center gap-1"
                     >
-                      <Eye size={12} /> View & Edit List
+                      <Eye size={12} /> View &amp; Edit List
                     </button>
                   </div>
                   <div className="mb-4">
@@ -2250,79 +2542,191 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {viewingList && (
-            <div className="absolute inset-0 z-[90] bg-slate-100 flex flex-col p-4">
-              <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-300">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  {viewingList === 'gifs' ? (
-                    <ImageIcon className="text-purple-600" />
+          {viewingList && (() => {
+            const fullList = viewingList === 'gifs' ? gifList : soundList;
+            const disabledSet = viewingList === 'gifs' ? disabledGifs : disabledSounds;
+            const normalizedSearch = listSearchQuery
+              .trim()
+              .replace(/^["']+|["']+$/g, '')
+              .toLowerCase();
+            const filteredEntries = fullList
+              .map((url, idx) => ({ url, idx }))
+              .filter(
+                ({ url }) => !normalizedSearch || url.toLowerCase().includes(normalizedSearch)
+              );
+            const activeCount = fullList.length - disabledSet.size;
+
+            return (
+              <div className="absolute inset-0 z-[90] bg-slate-100 flex flex-col p-4">
+                <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-300">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      {viewingList === 'gifs' ? (
+                        <ImageIcon className="text-purple-600" />
+                      ) : (
+                        <Music className="text-amber-600" />
+                      )}
+                      {viewingList === 'gifs' ? 'All GIFs' : 'All Sounds'}
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      {activeCount} active · {disabledSet.size} disabled · {fullList.length} total
+                    </p>
+                  </div>
+                  <button
+                    onClick={closeListView}
+                    className="p-2 bg-slate-200 rounded-full hover:bg-slate-300"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                </div>
+
+                {/* Search / Paste URL inside list */}
+                <div className="flex gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Search
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                    <input
+                      type="text"
+                      value={listSearchQuery}
+                      onChange={(e) => {
+                        setListSearchQuery(e.target.value);
+                        setHighlightedUrl(null);
+                      }}
+                      placeholder="Filter or paste URL to locate..."
+                      className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-8 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {listSearchQuery && (
+                      <button
+                        onClick={() => {
+                          setListSearchQuery('');
+                          setHighlightedUrl(null);
+                        }}
+                        aria-label="Clear filter"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={handlePasteIntoListSearch}
+                    className="px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold text-xs hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+                    title="Paste copied URL from clipboard"
+                  >
+                    <ClipboardPaste size={14} /> Paste URL
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {filteredEntries.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-500">
+                      No matching {viewingList === 'gifs' ? 'GIFs' : 'sounds'} found.
+                    </div>
                   ) : (
-                    <Music className="text-amber-600" />
+                    filteredEntries.map(({ url, idx }) => {
+                      const isDisabled = disabledSet.has(url);
+                      const isHighlighted = highlightedUrl === url;
+
+                      return (
+                        <div
+                          key={`${url}-${idx}`}
+                          ref={isHighlighted ? highlightedItemRef : undefined}
+                          className={`p-2.5 rounded-xl border shadow-sm flex items-center gap-3 transition-all ${
+                            isHighlighted
+                              ? 'bg-indigo-50/90 border-indigo-500 ring-2 ring-indigo-400/60'
+                              : isDisabled
+                                ? 'bg-slate-100/90 border-slate-200 opacity-75'
+                                : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          {viewingList === 'gifs' ? (
+                            <button
+                              onClick={() => setPreviewGifUrl(url)}
+                              className="w-16 h-12 bg-slate-200 rounded overflow-hidden flex-shrink-0 relative group cursor-zoom-in"
+                            >
+                              <img
+                                src={url}
+                                alt="preview"
+                                loading="lazy"
+                                decoding="async"
+                                className={`w-full h-full object-cover ${isDisabled ? 'grayscale opacity-60' : ''}`}
+                              />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handlePreviewSound(url)}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                                isDisabled
+                                  ? 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                                  : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                              }`}
+                            >
+                              <Play size={16} fill="currentColor" />
+                            </button>
+                          )}
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                              <span className="text-[10px] font-mono font-bold text-slate-400">
+                                #{idx + 1}
+                              </span>
+                              {isHighlighted && (
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white">
+                                  Matched
+                                </span>
+                              )}
+                              {isDisabled && (
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                  Disabled
+                                </span>
+                              )}
+                            </div>
+                            <p
+                              className={`text-[10px] truncate font-mono ${
+                                isDisabled ? 'text-slate-400 line-through' : 'text-slate-600'
+                              }`}
+                            >
+                              {url}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() =>
+                                handleToggleDisable(url, viewingList === 'gifs' ? 'gif' : 'sound')
+                              }
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors flex items-center gap-1 ${
+                                isDisabled
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              }`}
+                              title={isDisabled ? 'Enable item' : 'Disable item without deleting'}
+                            >
+                              {isDisabled ? <Power size={13} /> : <EyeOff size={13} />}
+                              <span className="hidden sm:inline">
+                                {isDisabled ? 'Enable' : 'Disable'}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleRemoveSpecific(url, viewingList === 'gifs' ? 'gif' : 'sound')
+                              }
+                              className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Delete permanently"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
-                  {viewingList === 'gifs' ? 'All GIFs' : 'All Sounds'}
-                </h2>
-                <button
-                  onClick={closeListView}
-                  className="p-2 bg-slate-200 rounded-full hover:bg-slate-300"
-                >
-                  <ChevronLeft size={24} />
-                </button>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                {viewingList === 'gifs'
-                  ? gifList.map((url, index) => (
-                      <div
-                        key={`${url}-${index}`}
-                        className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3"
-                      >
-                        <button
-                          onClick={() => setPreviewGifUrl(url)}
-                          className="w-16 h-12 bg-slate-100 rounded overflow-hidden flex-shrink-0 relative group cursor-zoom-in"
-                        >
-                          <img
-                            src={url}
-                            alt="preview"
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] text-slate-500 truncate font-mono">{url}</p>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveSpecific(url, 'gif')}
-                          className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))
-                  : soundList.map((url, index) => (
-                      <div
-                        key={`${url}-${index}`}
-                        className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3"
-                      >
-                        <button
-                          onClick={() => handlePreviewSound(url)}
-                          className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center hover:bg-amber-200 flex-shrink-0 transition-colors"
-                        >
-                          <Play size={16} fill="currentColor" />
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] text-slate-500 truncate font-mono">{url}</p>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveSpecific(url, 'sound')}
-                          className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {previewGifUrl && (
             <div
@@ -2413,6 +2817,17 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* RANK GUIDE MODAL */}
+      {showRankGuide && gameState && (
+        <RankGuideModal
+          currentDifficulty={gameState.difficulty}
+          currentRankIndex={gameState.rankIndex}
+          currentScore={gameState.score}
+          onClose={() => setShowRankGuide(false)}
+          onSelectDifficulty={(diff) => requestNewGame(diff)}
+        />
       )}
 
       {/* VICTORY MODAL */}
