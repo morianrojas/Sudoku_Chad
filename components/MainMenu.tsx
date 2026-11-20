@@ -140,7 +140,7 @@ const MainMenu: React.FC<MainMenuProps> = React.memo(
         <div className="mb-10 text-center relative px-4">
           {/* Added pb-2 and leading-tight to prevent clipping of 'g' descender */}
           <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-gray-500 via-slate-700 to-gray-600 mb-2 tracking-tight drop-shadow-sm pb-2 leading-tight">
-            GigaChad Sudoku
+            Chad Sudoku
           </h1>
           <p className="text-slate-600 font-bold text-lg">
             Choose your challenge level
