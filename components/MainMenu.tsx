@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Difficulty } from '../types';
 import { RANKS } from '../data/gameData';
-import { Coffee, Brain, Flame, Trophy, Skull } from 'lucide-react';
+import { Coffee, Brain, Flame, Trophy, Skull, Play } from 'lucide-react';
+import { formatTime } from './GameTimer';
 import chadImg1 from '../src/assets/images/chad-1.jpg';
 import chadImg2 from '../src/assets/images/chad-2.webp';
 import chadImg3 from '../src/assets/images/chad-3.png';
 import chadImg4 from '../src/assets/images/chad-4.jpg';
 
+export interface ResumableSessionInfo {
+  difficulty: Difficulty;
+  score: number;
+  rankIndex: number;
+  filledCount: number;
+  totalEmptyCells: number;
+  elapsedSeconds: number;
+}
+
 interface MainMenuProps {
   onStartGame: (difficulty: Difficulty) => void;
-  highestRankIndex?: number | null;
+  onResumeGame?: () => void;
+  resumableSession?: ResumableSessionInfo | null;
+  lastRankIndex?: number | null;
 }
 
 const chadImages = [chadImg1, chadImg2, chadImg3, chadImg4];
@@ -55,10 +67,11 @@ const difficultyConfig = {
 
 const DIFFICULTIES = Object.values(Difficulty);
 
-const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame, highestRankIndex = null }) => {
+const MainMenu: React.FC<MainMenuProps> = React.memo(
+  ({ onStartGame, onResumeGame, resumableSession = null, lastRankIndex = null }) => {
   const achievedRank =
-    highestRankIndex !== null && highestRankIndex >= 0 && highestRankIndex < RANKS.length
-      ? RANKS[highestRankIndex]
+    lastRankIndex !== null && lastRankIndex >= 0 && lastRankIndex < RANKS.length
+      ? RANKS[lastRankIndex]
       : null;
   const [rankBgFailed, setRankBgFailed] = useState(false);
 
@@ -71,7 +84,7 @@ const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame, highestRank
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-300 via-gray-200 to-slate-400 text-slate-800 p-6 overflow-hidden">
       
-      {/* Background Layer: Highest Completed Rank Image OR 4 GigaChad Collage */}
+      {/* Background Layer: Last Completed Game Rank Image OR 4 GigaChad Collage */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
         {showRankBackground && achievedRank ? (
           <>
@@ -133,6 +146,39 @@ const MainMenu: React.FC<MainMenuProps> = React.memo(({ onStartGame, highestRank
             Choose your challenge level
           </p>
         </div>
+
+        {/* Resume Saved Session Card (if unfinished game exists) */}
+        {resumableSession && onResumeGame && (
+          <div className="w-full max-w-sm mb-5">
+            <button
+              type="button"
+              onClick={onResumeGame}
+              className="group w-full p-4 bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-emerald-400 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between gap-3 text-left"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                  <Play size={20} fill="currentColor" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black uppercase tracking-wide text-white">
+                      Resume {resumableSession.difficulty}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      Saved
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium tabular-nums truncate mt-0.5">
+                    {RANKS[resumableSession.rankIndex]?.name ?? 'Bronze'} •{' '}
+                    {resumableSession.score.toLocaleString()} XP • {resumableSession.filledCount}/
+                    {resumableSession.totalEmptyCells} cells •{' '}
+                    {formatTime(resumableSession.elapsedSeconds)}
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Difficulty Buttons */}
         <div className="flex flex-col gap-4 w-full max-w-sm">

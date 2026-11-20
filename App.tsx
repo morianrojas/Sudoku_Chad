@@ -37,7 +37,13 @@ import {
   getRankProgressInfo,
 } from './data/gameData';
 import { DIFFICULTY_THEMES } from './data/difficultyThemes';
-import MainMenu from './components/MainMenu';
+import {
+  loadSavedSession,
+  saveSessionData,
+  loadSavedProfile,
+  saveProfileData,
+} from './utils/storage';
+import MainMenu, { ResumableSessionInfo } from './components/MainMenu';
 import NumberPad from './components/NumberPad';
 import Tools from './components/Tools';
 import SudokuBoard from './components/SudokuBoard';
@@ -112,7 +118,7 @@ const addLog = (
   return newLog.length > 50 ? newLog.slice(newLog.length - 50) : newLog;
 };
 
-const UNIT_ANIM_DURATION_MS = 1400;
+const UNIT_ANIM_DURATION_MS = 1300;
 const UNIT_CLEAR_VARIANTS: UnitClearVariant[] = ['ripple-wave', 'golden-flip', 'neon-sweep'];
 let unitClearVariantBag: UnitClearVariant[] = [];
 let lastUnitClearVariant: UnitClearVariant | null = null;
@@ -243,16 +249,57 @@ const playUnitClearChime = (
   }
 };
 
+const DEFAULT_SETTINGS: AppSettings = {
+  operationsTarget: 10,
+  breakDuration: 60,
+  rewardDuration: 7200,
+  volumeRewardMain: 60,
+  volumeRewardList: 20,
+  volumeError: 65,
+  enableVisualRewards: true,
+  enableRewardSounds: true,
+  showActivityLog: false,
+  showRewardTimerBar: false,
+};
+
+const mergeSavedRewardUrls = (
+  savedList: string[] | undefined,
+  savedKnownDefaults: string[] | undefined,
+  currentDefaults: string[]
+): string[] => {
+  if (!Array.isArray(savedList)) return [...currentDefaults];
+  if (!Array.isArray(savedKnownDefaults)) return [...savedList];
+  const knownSet = new Set(savedKnownDefaults);
+  const savedSet = new Set(savedList);
+  const newlyAddedDefaults = currentDefaults.filter((u) => !knownSet.has(u) && !savedSet.has(u));
+  return newlyAddedDefaults.length > 0 ? [...savedList, ...newlyAddedDefaults] : [...savedList];
+};
+
 const App: React.FC = () => {
-  const [inMenu, setInMenu] = useState(true);
-  const [highestCompletedRankIndex, setHighestCompletedRankIndex] = useState<number | null>(null);
+  const [initialSavedSession] = useState(() => loadSavedSession());
+  const [initialSavedProfile] = useState(() => loadSavedProfile());
+
+  const [inMenu, setInMenu] = useState(() =>
+    initialSavedSession ? initialSavedSession.inMenu : true
+  );
+  const [lastCompletedRankIndex, setLastCompletedRankIndex] = useState<number | null>(() =>
+    typeof initialSavedProfile?.lastCompletedRankIndex === 'number'
+      ? initialSavedProfile.lastCompletedRankIndex
+      : typeof initialSavedProfile?.highestCompletedRankIndex === 'number'
+        ? initialSavedProfile.highestCompletedRankIndex
+        : null
+  );
   const [sessionId, setSessionId] = useState(0);
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(() =>
+    initialSavedSession ? initialSavedSession.gameState : null
+  );
   const [selectedCell, setSelectedCell] = useState<Coords | null>(null);
   const [isPaused, setIsPaused] = useState(false);
 
   // Game Mode States
-  const [isNotesMode, setIsNotesMode] = useState(false);
+  const [isNotesMode, setIsNotesMode] = useState(() =>
+    initialSavedSession ? initialSavedSession.isNotesMode : false
+  );
 
   // New Game Confirmation State
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
@@ -263,18 +310,10 @@ const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Settings & Break Logic
-  const [settings, setSettings] = useState<AppSettings>({
-    operationsTarget: 10,
-    breakDuration: 60,
-    rewardDuration: 7200,
-    volumeRewardMain: 60,
-    volumeRewardList: 20,
-    volumeError: 65,
-    enableVisualRewards: true,
-    enableRewardSounds: true,
-    showActivityLog: false,
-    showRewardTimerBar: false,
-  });
+  const [settings, setSettings] = useState<AppSettings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...(initialSavedProfile?.settings ?? {}),
+  }));
   const [showSettings, setShowSettings] = useState(false);
   const [showRankGuide, setShowRankGuide] = useState(false);
   const [showRewardConfig, setShowRewardConfig] = useState(false);
@@ -286,10 +325,32 @@ const App: React.FC = () => {
   const [currentBreakQuote, setCurrentBreakQuote] = useState('');
 
   // Resource Management State
-  const [gifList, setGifList] = useState<string[]>(INITIAL_REWARD_GIFS);
-  const [soundList, setSoundList] = useState<string[]>(INITIAL_REWARD_SOUNDS);
-  const [disabledGifs, setDisabledGifs] = useState<Set<string>>(() => new Set());
-  const [disabledSounds, setDisabledSounds] = useState<Set<string>>(() => new Set());
+  const [gifList, setGifList] = useState<string[]>(() =>
+    mergeSavedRewardUrls(
+      initialSavedProfile?.gifList,
+      initialSavedProfile?.knownDefaultGifs,
+      INITIAL_REWARD_GIFS
+    )
+  );
+  const [soundList, setSoundList] = useState<string[]>(() =>
+    mergeSavedRewardUrls(
+      initialSavedProfile?.soundList,
+      initialSavedProfile?.knownDefaultSounds,
+      INITIAL_REWARD_SOUNDS
+    )
+  );
+  const [disabledGifs, setDisabledGifs] = useState<Set<string>>(
+    () =>
+      new Set(
+        Array.isArray(initialSavedProfile?.disabledGifs) ? initialSavedProfile.disabledGifs : []
+      )
+  );
+  const [disabledSounds, setDisabledSounds] = useState<Set<string>>(
+    () =>
+      new Set(
+        Array.isArray(initialSavedProfile?.disabledSounds) ? initialSavedProfile.disabledSounds : []
+      )
+  );
   const [findUrlInput, setFindUrlInput] = useState('');
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [highlightedUrl, setHighlightedUrl] = useState<string | null>(null);
@@ -303,7 +364,7 @@ const App: React.FC = () => {
     [soundList, disabledSounds]
   );
 
-  // Rank Up Playlists State
+  // Rank Up Playlists State (shuffle bags synced with gameData.ts)
   const [rankUpGifs, setRankUpGifs] = useState<string[]>(() => [...RANK_UP_GIFS]);
   const [rankUpSounds, setRankUpSounds] = useState<string[]>(() => [...RANK_UP_SOUNDS]);
   const [rankUpSpecialSounds, setRankUpSpecialSounds] = useState<string[]>(() => [
@@ -314,11 +375,19 @@ const App: React.FC = () => {
   const [showRewardScreen, setShowRewardScreen] = useState(false);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [isVictoryQueued, setIsVictoryQueued] = useState(false);
-  const [completionTime, setCompletionTime] = useState(0);
+  const [completionTime, setCompletionTime] = useState(() =>
+    initialSavedSession ? initialSavedSession.completionTime : 0
+  );
   const [rankImgFailed, setRankImgFailed] = useState(false);
   const [currentGif, setCurrentGif] = useState<string>('');
-  const [lastPlayedGif, setLastPlayedGif] = useState<string>('');
-  const [lastPlayedSound, setLastPlayedSound] = useState<string>('');
+  const [lastPlayedGif, setLastPlayedGif] = useState<string>(() =>
+    typeof initialSavedProfile?.lastPlayedGif === 'string' ? initialSavedProfile.lastPlayedGif : ''
+  );
+  const [lastPlayedSound, setLastPlayedSound] = useState<string>(() =>
+    typeof initialSavedProfile?.lastPlayedSound === 'string'
+      ? initialSavedProfile.lastPlayedSound
+      : ''
+  );
   const [gifBuffer, setGifBuffer] = useState<string[]>([]);
   const [currentRewardData, setCurrentRewardData] = useState<{
     quote: string;
@@ -330,20 +399,28 @@ const App: React.FC = () => {
   const quoteTracker = useRef<{
     currentPackageIndex: number;
     availableQuotes: string[];
-  }>({ currentPackageIndex: 0, availableQuotes: [] });
+  }>(
+    initialSavedSession
+      ? initialSavedSession.quoteTracker
+      : { currentPackageIndex: 0, availableQuotes: [] }
+  );
 
   // Preview States for List View
   const [previewGifUrl, setPreviewGifUrl] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio State (Shuffle Bag)
-  const [rewardPlaylist, setRewardPlaylist] = useState<string[]>(() => [...INITIAL_REWARD_SOUNDS]);
+  const [rewardPlaylist, setRewardPlaylist] = useState<string[]>(() =>
+    soundList.filter((u) => !disabledSounds.has(u))
+  );
   const activeAudioRefs = useRef<HTMLAudioElement[]>([]);
 
   // Preload & Timer Refs
   const [unitClearAnim, setUnitClearAnim] = useState<UnitClearAnimation | null>(null);
   const preloadedUrlsRef = useRef<Set<string>>(new Set());
-  const elapsedSecondsRef = useRef<number>(0);
+  const elapsedSecondsRef = useRef<number>(
+    initialSavedSession ? initialSavedSession.elapsedSeconds : 0
+  );
   const breakDelayTimeoutRef = useRef<number | null>(null);
   const unitAnimTimeoutRef = useRef<number | null>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
@@ -357,6 +434,69 @@ const App: React.FC = () => {
   const newGifInputRef = useRef<HTMLInputElement>(null);
   const bulkGifInputRef = useRef<HTMLTextAreaElement>(null);
   const newSoundInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-save profile preferences, last completed rank, and reward lists locally
+  useEffect(() => {
+    saveProfileData({
+      lastCompletedRankIndex,
+      settings,
+      gifList,
+      soundList,
+      knownDefaultGifs: INITIAL_REWARD_GIFS,
+      knownDefaultSounds: INITIAL_REWARD_SOUNDS,
+      disabledGifs: Array.from(disabledGifs),
+      disabledSounds: Array.from(disabledSounds),
+      lastPlayedGif,
+      lastPlayedSound,
+    });
+  }, [
+    lastCompletedRankIndex,
+    settings,
+    gifList,
+    soundList,
+    disabledGifs,
+    disabledSounds,
+    lastPlayedGif,
+    lastPlayedSound,
+  ]);
+
+  const persistCurrentSession = useCallback(() => {
+    if (!gameState) return;
+    saveSessionData({
+      gameState,
+      elapsedSeconds: elapsedSecondsRef.current,
+      completionTime,
+      inMenu,
+      isNotesMode,
+      quoteTracker: quoteTracker.current,
+      savedAt: Date.now(),
+    });
+  }, [gameState, completionTime, inMenu, isNotesMode]);
+
+  // Auto-save active game session on every move/update
+  useEffect(() => {
+    persistCurrentSession();
+  }, [persistCurrentSession]);
+
+  // Persist on tab hide / reload / page close so elapsed timer & latest state are never lost
+  useEffect(() => {
+    const handleFlush = () => {
+      persistCurrentSession();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        persistCurrentSession();
+      }
+    };
+    window.addEventListener('beforeunload', handleFlush);
+    window.addEventListener('pagehide', handleFlush);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('beforeunload', handleFlush);
+      window.removeEventListener('pagehide', handleFlush);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [persistCurrentSession]);
 
   const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -1326,9 +1466,7 @@ const App: React.FC = () => {
       );
 
       if (isComplete) {
-        setHighestCompletedRankIndex((prev) =>
-          prev === null ? newRankIndex : Math.max(prev, newRankIndex)
-        );
+        setLastCompletedRankIndex(newRankIndex);
         setCompletionTime(finalElapsed);
       }
 
@@ -1552,9 +1690,7 @@ const App: React.FC = () => {
     });
 
     if (isComplete) {
-      setHighestCompletedRankIndex((prev) =>
-        prev === null ? gameState.rankIndex : Math.max(prev, gameState.rankIndex)
-      );
+      setLastCompletedRankIndex(gameState.rankIndex);
       setCompletionTime(finalElapsed);
     }
 
@@ -1698,6 +1834,28 @@ const App: React.FC = () => {
       !showVictoryModal &&
       !showNewGameConfirm
   );
+
+  // Periodically flush elapsed timer to localStorage while actively playing
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    const interval = window.setInterval(() => {
+      persistCurrentSession();
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [isTimerRunning, persistCurrentSession]);
+
+  const resumableSession = useMemo<ResumableSessionInfo | null>(() => {
+    if (!gameState || gameState.isComplete) return null;
+    return {
+      difficulty: gameState.difficulty,
+      score: gameState.score,
+      rankIndex: gameState.rankIndex,
+      filledCount: filledEmptyCount,
+      totalEmptyCells: gameState.totalEmptyCells,
+      elapsedSeconds: elapsedSecondsRef.current,
+    };
+  }, [gameState, filledEmptyCount, inMenu]);
+
   const boardTheme = gameState
     ? DIFFICULTY_THEMES[gameState.difficulty]
     : DIFFICULTY_THEMES[Difficulty.EASY];
@@ -1707,7 +1865,12 @@ const App: React.FC = () => {
       {inMenu && (
         <MainMenu
           onStartGame={requestNewGame}
-          highestRankIndex={highestCompletedRankIndex}
+          onResumeGame={() => {
+            setIsPaused(false);
+            setInMenu(false);
+          }}
+          resumableSession={resumableSession}
+          lastRankIndex={lastCompletedRankIndex}
         />
       )}
 
