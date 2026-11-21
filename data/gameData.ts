@@ -96,7 +96,6 @@ export const RANK_UP_GIFS: string[] = [
   "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGh5eTY3aDdhanJjemMxNXh2MDI1a2IwM21xNTdxeWVkN2w1OWlmMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3ohze2Pewc9VRVJkuA/giphy.gif",
   "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExb2dwaTg3cjRscDg4NzhlMXEzdzIyNTA0aTR1eDcwajVkNzJtZmI5diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/F2aE1bfCQl7IA/giphy.gif",
   "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeG1kMGcybW5oMTUyMTQ2MnNidTRqb3I1cGo5Z2c4cDgyNGxkd2JpdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ur8JnxGgsez8Q/giphy.gif",
-  "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHJudWIzOHFxM3gzc2VqdTN1bnU1bHFiMDlnbW44M25idTB2NzJiYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/bDWdJRY2IZCX6/giphy.gif",
   "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExem14ejNkMXZ3d2ZnanY5ZzJwbW4wM2VoN2JjMXRiM3ZlaWtuY2FjdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/v1yiPQCjfH559zeUvq/giphy.gif",
   "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDRiZDdoNzJnZW1iZXJtOG9lY3kyeHBkaHByNzhzdnE0OGZ6NTg2YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/XGBAmjqA0RJyU/giphy.gif",
   "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWI4N2t3eXNtZW5vejhlZW95eDh1c3UzODYybm11N3VkMWI4Y2tzYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Fnq53a9jm1m5W/giphy.gif",
